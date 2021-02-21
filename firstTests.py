@@ -13,8 +13,10 @@ from hyperbolic.poincare import Transform
 def add_Edge(G,e1,e2):
     pass
 
-def f_z0(z):
-    pass
+def f_z0(new_center):
+    """new_center is a coordinate designating a euclidean point on the unit sphere"""
+    z0 = complex(*new_center)
+
 
 g = nx.drawing.nx_agraph.read_dot('test.dot')
 G = {}
@@ -47,3 +49,7 @@ for e in paths:
 d.setRenderSize(w=400)
 d.saveSvg('secondGraph.svg')
 print(G['0']['Point'].distanceTo(G['1']['Point']))
+
+trans = Transform.shiftOrigin(Point(.5,.5))
+
+print(trans)
