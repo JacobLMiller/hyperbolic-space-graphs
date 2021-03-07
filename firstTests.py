@@ -16,6 +16,22 @@ def add_Edge(G,e1,e2):
 def f_z0(new_center):
     """new_center is a coordinate designating a euclidean point on the unit sphere"""
     z0 = complex(*new_center)
+    a = 1
+    b = -z0
+    c = (-z0).conjugate()
+    d = 1
+    return Transform(a,b,c,d)
+
+def inverse_f_z0(new_center):
+    z0 = complex(*new_center)
+    a = -1
+    b = -z0
+    c = (-z0).conjugate()
+    d = -1
+    return Transform(a,b,c,d)
+
+def g_z0():
+    pass
 
 
 g = nx.drawing.nx_agraph.read_dot('test.dot')
@@ -52,4 +68,14 @@ print(G['0']['Point'].distanceTo(G['1']['Point']))
 
 trans = Transform.shiftOrigin(Point(.5,.5))
 
-print(trans)
+
+d = Drawing(2.1, 2.1, origin='center')
+d.draw(euclid.shapes.Circle(0, 0, 1), fill='#ddd')
+
+for v in list(G.keys()):
+    d.draw(G[v]['Point'], hradius=0.1,transform=trans, fill='green')
+for e in paths:
+    d.draw(e, hradius=0.01,transform=trans, fill='white')
+
+d.setRenderSize(w=400)
+d.saveSvg('thridGraph.svg')

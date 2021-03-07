@@ -1,0 +1,100 @@
+body {
+  background-image: url(../images/background.png);
+  background-attachment: fixed;
+}
+
+nav {
+  margin: 13px 0 0 0;
+}
+
+a {
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+p > a:hover {
+  text-decoration: none;
+}
+
+.nav-button a {
+  /*font-family: Raleway;*/
+  display: block;
+  text-align: center;
+  padding: 10px 0px;
+}
+
+div#hyperbolic-canvas.background-canvas {
+  display: block;
+  position: fixed;
+  z-index: -1;
+  left: 0px;
+  top: 0px;
+  height: 10000%;
+  width: 200%;
+}
+
+div#hyperbolic-canvas.background-canvas div.backdrop {
+  transform: translate(calc(-50%), calc(-25%));
+}
+
+div.blockquote {
+  background-color: white;
+  padding: 20px;
+  margin-top: 15%;
+}
+
+div.container {
+  margin-top: 50px;
+  margin-bottom: 50px;
+}
+
+div.content {
+  background-color: white;
+  padding: 13px;
+  margin-top: 50px;
+}
+
+div.example:hover {
+  background: #FBECE7;
+}
+
+div.example {
+  padding: 3px;
+  cursor: pointer;
+}
+
+div.nav-button {
+  background-color: white;
+  height: 100%;
+}
+
+/*
+Each hyperbolic-canvas div must be of non-zero size.
+A size with a 1:1 ratio is recommended.
+In this case, it expands to fill its container.
+*/
+div#hyperbolic-canvas {
+  height: 100%;
+  width: 100%;
+}
+
+/*
+A backdrop div is automatically appended into each hyperbolic-canvas div.
+It is automatically scaled to fill its parent, and cropped to a 1:1 ratio.
+It is not recommended to apply styling beyond background color.
+*/
+div#hyperbolic-canvas div.backdrop {
+  background-color: #2C001E;
+}
+
+/*
+An HTML canvas is automatically appended into each backdrop div.
+It is automatically scaled to fit its parent.
+It is not recommended to apply styling beyond background color.
+*/
+div#hyperbolic-canvas div.backdrop div.underlay {
+  background-color: #D6D3CF;
+}
