@@ -310,6 +310,7 @@ Circle.givenHyperbolicCenterRadius = function (center, radius) {
   if (!center.isOnPlane()) {
     return false;
   }
+  console.log('hello')
   return new Circle({ hyperbolicCenter: center, hyperbolicRadius: radius });
 };
 

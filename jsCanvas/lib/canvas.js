@@ -66,6 +66,7 @@ Canvas.prototype.at = function (loc) {
 
 Canvas.prototype.clear = function () {
   this.getContext().clearRect(0, 0, this.getDiameter(), this.getDiameter());
+  console.log('hello');
 };
 
 Canvas.prototype.fill = function (path) {
@@ -96,6 +97,14 @@ Canvas.prototype.stroke = function (path) {
     path.stroke();
   }
 };
+
+Canvas.prototype.fill_text = function(text,point){
+  ctx = this.getContext();
+  ctx.font = "30px Comic Sans MS";
+  ctx.fillStyle = "red";
+  ctx.textAlign = "center";
+  ctx.fillText(text,this.width/2,this.width/2);
+}
 
 Canvas.prototype.pathForReferenceAngles = function (n, rotation, options) {
   let path = this._getPathOrContext(options || {});
@@ -352,6 +361,8 @@ Canvas.prototype._setupSize = function () {
   let h = container.clientHeight;
   let d = this._diameter = w > h ? h : w;
   let r = this._radius = d / 2;
+
+  console.log('i was here')
 
   underlay.style['width'] = underlay.style['height'] = '' + d + 'px';
   backdrop.style['width'] = backdrop.style['height'] = '' + d + 'px';

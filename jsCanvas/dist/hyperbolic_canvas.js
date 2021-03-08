@@ -144,6 +144,15 @@ Canvas.prototype.stroke = function (path) {
   }
 };
 
+Canvas.prototype.fill_text = function(text,point){
+  ctx = this.getContext("2d");
+  ctx.font = "30px Comic Sans MS";
+  ctx.fillStyle = "red";
+  ctx.textAlign = "center";
+  ctx.fillText(text,ctx.width/2,ctx.width/2);
+  //ctx.strokeText(text,500,500);
+}
+
 Canvas.prototype.pathForReferenceAngles = function (n, rotation, options) {
   let path = this._getPathOrContext(options || {});
   let angle = rotation || 0;
