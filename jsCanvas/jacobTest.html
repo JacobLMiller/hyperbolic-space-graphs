@@ -15,6 +15,11 @@
 
   <!-- Primary Page Layout
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+<input type="file" onchange="readText(event)" />
+<pre id="output"></pre>
+
+</script>
+document.getElementById('output').innerText
 
     <div class="row">
       <div class="content">
@@ -49,7 +54,7 @@
             <a href="#">Click.</a>
           </p>
         </div>
-        <div class="example" onclick="location='example.html?script=text'">
+        <div class="example" onclick="location='example.html?script=text-display'">
           <h4>Displaying labels</h4>
           <p>
             <a href="#">Click.</a>
