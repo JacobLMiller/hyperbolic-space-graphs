@@ -7,6 +7,7 @@
     window.HyperbolicCanvas.scripts = {};
   }
 
+let dragged = false;
 
 function toCounterClockwise(polygon) {
     var sum = 0;
@@ -62,7 +63,7 @@ function readTextFile(file)
               if(rawFile.status === 200 || rawFile.status == 0)
               {
                   var allText = rawFile.responseText;
-                  alert(allText);
+                  //alert(allText);
               }
           }
       }
@@ -80,6 +81,21 @@ var polygonStrToHyperbolic = function(xStr,yStr){
 
 }
 
+var transformPolygon = function(P,b,c){
+
+
+  vertices = P.getVertices();
+  newVertices = [];
+  for (i in vertices){
+    newVertices.push(mobius(vertices[i],1,b,c,1));
+  }
+  for (i in vertices){
+    p0 = newVertices[i].toPolar();
+    p0 = HyperbolicCanvas.Point.givenEuclideanPolarCoordinates(p0.r,p0.phi);
+    newVertices[i] = p0;
+  }
+  return(HyperbolicCanvas.Polygon.givenVertices(newVertices))
+}
 
 var mobius = function(z,a,b,c,d){
   z0 = math.Complex.fromPolar(z.getEuclideanRadius(),z.getAngle());
@@ -185,7 +201,7 @@ var makeGraph = function(V,E){
 
 }
 
-  HyperbolicCanvas.scripts['text-display'] = function (canvas) {
+  HyperbolicCanvas.scripts['scrolling'] = function (canvas) {
     var location = HyperbolicCanvas.Point.ORIGIN;
     let n = 0;
 
@@ -193,6 +209,65 @@ var makeGraph = function(V,E){
     let V = g._nodes;
     let E = g._edgeObjs;
 
+
+    t = DotParser.parse(readTextFile("scripts/colors_map.dot"));
+    console.log(t.children[0].attr_list[0].eq.trim().split(/\s+/));
+  let parsed = true;
+   var regions;
+
+   var color;
+   var polygonsIdx = 0;
+   var colorIdx = 0;
+   var lineIdx = 0;
+   let colors = [];
+   let polygons = [[]];
+   let lines = [[]];
+
+
+   //Parsing code taken from http://gmap.cs.arizona.edu
+   regions = t.children[0].attr_list[0].eq.trim().split(/\s+/);
+   // parse xdot for region info
+   for (var i = 0; i < regions.length; i++) {
+       if (regions[i] == "c") { // following specifies color
+           i += 2;
+           colors[colorIdx] = regions[i];
+
+           if (colors[colorIdx].charAt(0) == '-') { // some color hex's have '-' before
+               colors[colorIdx] = colors[colorIdx].substring(1);
+           }
+           colorIdx++;
+
+       } else if (regions[i] == "P") { // following is a polygon
+           i++;
+           var size = parseInt(regions[i]); // number of points in polygon
+
+           var polygon = regions.slice(i + 1, i + 1 + size * 2);
+
+           polygon = toCounterClockwise(polygon); // this many dimensions for GeoJson polygon coordinates
+           polygons[polygonsIdx++] = polygon;
+       } else if (regions[i] == "L") { // following is a line border of the polygon
+           i++;
+           var size = parseInt(regions[i]);
+
+           var line = regions.slice(i + 1, i + 1 + size * 2);
+           lines[lineIdx++] = line;
+       }
+   }
+
+
+//console.log(polygons);
+myPolygons = [];
+for(i=0; i<lines.length; i++){
+  myPolygons.push([])
+  for (j=0; j < lines[i].length; j+=2){
+    myPolygons[i].push(polygonStrToHyperbolic(lines[i][j],lines[i][j+1]));
+  }
+}
+
+newPolygons = [];
+for(i = 0; i<myPolygons.length; i++){
+  newPolygons.push(HyperbolicCanvas.Polygon.givenVertices(myPolygons[i]));
+}
 
     G = makeGraph(V,E);
 
@@ -204,29 +279,35 @@ var makeGraph = function(V,E){
     canvas.setContextProperties({ fillStyle: '#66B2FF' });
 
     //ctx.fillText('Hello world',100,500);
-    var point = HyperbolicCanvas.Point.givenCoordinates(.1,.1);
-
-
+    var location = HyperbolicCanvas.Point.givenCoordinates(.1,.1);
     var render = function (event) {
       canvas.clear();
 
+
+
+      for(i in newPolygons){
+        ctx.fillStyle = colors[i];
+        path = canvas.pathForHyperbolic(newPolygons[i]);
+        canvas.fillAndStroke(path);
+      }
+
       //ctx.fillText('Hello world',canvas._canvas.height/2,canvas._canvas.height/2);
 
-      path = canvas.pathForEuclidean(point);
-      canvas.stroke(path);
+
       //console.log(canvas.getCanvasPixelCoords(point));
 
       i = 0;
-      for(i in G.pathList){
+      /*for(i in G.pathList){
         path = canvas.pathForHyperbolic(G.pathList[i]);
         canvas.stroke(path);
       }
+      */
 
       i = 0;
       for(i in G.nodeList){
-        ctx.fillStyle = "#66B2FF";
+        ctx.fillStyle = "grey";
         path = canvas.pathForHyperbolic(
-          HyperbolicCanvas.Circle.givenHyperbolicCenterRadius(G.nodeList[i].hPos,.1)
+          HyperbolicCanvas.Circle.givenHyperbolicCenterRadius(G.nodeList[i].hPos,.05)
         );
         canvas.fillAndStroke(path);
 
@@ -250,6 +331,7 @@ var makeGraph = function(V,E){
         y = event.clientY;
       }
       location = canvas.at([x, y]);
+      changeCenter(location);
     };
 
     var incrementN = function () {
@@ -260,6 +342,10 @@ var makeGraph = function(V,E){
       b = b.neg();
       c = c.conjugate();
       c = c.neg();
+
+      for (x in newPolygons){
+        newPolygons[x] = transformPolygon(newPolygons[x],b,c);
+      }
 
       for (x in G.pathList){
         p0 = mobius(G.pathList[x].getP0(),1,b,c,1);
@@ -287,11 +373,66 @@ var makeGraph = function(V,E){
       }
     };
 
+var changeCenter = function(center){
+  canvas.clear();
+  r = center.getEuclideanRadius();
 
 
-    canvas.getCanvasElement().addEventListener('click', incrementN);
-    canvas.getCanvasElement().addEventListener('mousemove', resetLocation);
+  b = math.Complex.fromPolar(r,center.getAngle());
+  c = b.clone();
+  b = b.neg();
+  c = c.neg();
+  c = c.conjugate();
+
+  for (x in newPolygons){
+    newPolygons[x] = transformPolygon(newPolygons[x],b,c);
+  }
+
+  for (x in G.pathList){
+    p0 = mobius(G.pathList[x].getP0(),1,b,c,1);
+    p1 = mobius(G.pathList[x].getP1(),1,b,c,1);
+
+    p0 = p0.toPolar();
+    p1 = p1.toPolar();
+
+    p0 = HyperbolicCanvas.Point.givenEuclideanPolarCoordinates(p0.r,p0.phi);
+    p1 = HyperbolicCanvas.Point.givenEuclideanPolarCoordinates(p1.r,p1.phi);
+
+    G.pathList[x] = HyperbolicCanvas.Line.givenTwoPoints(p0,p1);
+
+  }
+
+  for(i in G.nodeList){
+    G.nodeList[i].hPos = mobius(G.nodeList[i].hPos,1,b,c,1);
+    G.nodeList[i].hPos = G.nodeList[i].hPos.toPolar();
+    G.nodeList[i].hPos = HyperbolicCanvas.Point.givenEuclideanPolarCoordinates(G.nodeList[i].hPos.r,G.nodeList[i].hPos.phi);
+  }
+
+}
+
+var myDown = function(e){
+  dragged = true;
+  console.log('hello')
+}
+var myUp = function(e){
+  dragged = false;
+}
+
+var whileDragging = function(e){
+  if(dragged){
+    resetLocation(e);
+  }
+}
+
+
+    //canvas.getCanvasElement().addEventListener('click', incrementN);
+    canvas.getCanvasElement().addEventListener('mousemove', whileDragging);
     document.addEventListener('wheel', scroll);
+    canvas.getCanvasElement().addEventListener('mousedown', myDown);
+    canvas.getCanvasElement().addEventListener('mouseup', myUp);
+
+
+
 
     requestAnimationFrame(render);
   };

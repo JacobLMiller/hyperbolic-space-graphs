@@ -248,6 +248,10 @@ Canvas.prototype._pathForEuclideanPoint = function (p, path) {
   return path;
 };
 
+Canvas.prototype.getCanvasPixelCoords = function (p){
+  return (this.at(p));
+}
+
 Canvas.prototype._pathForEuclideanPolygon = function (p, path) {
   let start = this.at(p.getVertices()[0]);
   path.moveTo(start[0], start[1]);
