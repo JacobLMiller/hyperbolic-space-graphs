@@ -189,9 +189,10 @@ var makeGraph = function(V,E){
     var location = HyperbolicCanvas.Point.ORIGIN;
     let n = 0;
 
-    var g = graphlibDot.read(readTextFile("scripts/colors.dot"));
+    var g = graphlibDot.read(readTextFile("graphs/trad_bubble.dot"));
     let V = g._nodes;
     let E = g._edgeObjs;
+    console.log(g);
 
 
     G = makeGraph(V,E);

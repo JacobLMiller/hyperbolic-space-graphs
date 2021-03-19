@@ -74,7 +74,8 @@ var polygonStrToHyperbolic = function(xStr,yStr){
   x = parseFloat(xStr);
   y = parseFloat(yStr);
 
-  node = new Node(x,y);
+  //Hardcoded, come back and fix.
+  node = new Node(x-554.7586,y-496.0374000000002);
 
   return(lambertAzimuthal(node.r,node.theta));
 
@@ -165,9 +166,22 @@ var makeGraph = function(V,E){
   let name;
 
   let nodeList = [];
+  let allX = 0;
+  let allY = 0;
+  let count = 0;
+
   for (name in V){
     pos = parse_pos(V[name].pos);
-    V[name].node = new Node(pos[0],pos[1]);
+    allX += pos[0];
+    allY += pos[1];
+    count += 1;
+  }
+
+  originTrans = [allX/count,allY/count];
+
+  for (name in V){
+    pos = parse_pos(V[name].pos);
+    V[name].node = new Node(pos[0]-originTrans[0],pos[1]-originTrans[1]);
     V[name].hPos = lambertAzimuthal(V[name].node.r,V[name].node.theta);
     if (V[name].label){
       V[name].labelPos = {
@@ -204,12 +218,12 @@ var makeGraph = function(V,E){
     var location = HyperbolicCanvas.Point.ORIGIN;
     let n = 0;
 
-    var g = graphlibDot.read(readTextFile("scripts/colors.dot"));
+    var g = graphlibDot.read(readTextFile("graphs/colors.dot"));
     let V = g._nodes;
     let E = g._edgeObjs;
 
-
-    t = DotParser.parse(readTextFile("scripts/colors_map.dot"));
+    //console.log(readTextFile("scripts/colors_bubble.dot"));
+    t = DotParser.parse(readTextFile("graphs/colors_map.dot"));
     console.log(t.children[0].attr_list[0].eq.trim().split(/\s+/));
   let parsed = true;
    var regions;
@@ -290,11 +304,6 @@ for(i = 0; i<myPolygons.length; i++){
         path = canvas.pathForHyperbolic(newPolygons[i]);
         canvas.fillAndStroke(path);
       }
-
-      //ctx.fillText('Hello world',canvas._canvas.height/2,canvas._canvas.height/2);
-
-
-      //console.log(canvas.getCanvasPixelCoords(point));
 
       i = 0;
       /*for(i in G.pathList){
