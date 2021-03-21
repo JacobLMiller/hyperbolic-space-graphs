@@ -7,8 +7,10 @@
     window.HyperbolicCanvas.scripts = {};
   }
 
+var graphStr = "graphs/music_map.dot"
+
 let dragged = false;
-var SCROLL_SPEED = .01;
+var SCROLL_SPEED = .08;
 
 function toCounterClockwise(polygon) {
     var sum = 0;
@@ -77,7 +79,7 @@ var polygonStrToHyperbolic = function(xStr,yStr){
   y = parseFloat(yStr);
 
   //Hardcoded, come back and fix.
-  node = new Node(x-554.7586,y-496.0374000000002);
+  node = new Node(x-originTrans[0],y-originTrans[1]);
 
   return(lambertAzimuthal(node.r,node.theta));
 
@@ -101,15 +103,15 @@ var transformPolygon = function(P,transform){
 
 var mobius = function(z,transform){
   z0 = math.Complex.fromPolar(z.getEuclideanRadius(),z.getAngle());
-  a = transform[0];
+  /*a = transform[0];
   b = transform[1];
   c = transform[2];
-  d = transform[3];
+  d = transform[3];*/
 
-  numerator = math.multiply(a,z0);
-  numerator = math.add(numerator,b);
-  denominator = math.multiply(c,z0);
-  denominator = math.add(denominator,d);
+  numerator = math.multiply(transform.a,z0);
+  numerator = math.add(numerator,transform.b);
+  denominator = math.multiply(transform.c,z0);
+  denominator = math.add(denominator,transform.d);
   newPoint = math.divide(numerator,denominator).toPolar();
   return(HyperbolicCanvas.Point.givenEuclideanPolarCoordinates(
     newPoint.r,
@@ -161,29 +163,83 @@ var lambertAzimuthal = function(r,theta){
   return(HyperbolicCanvas.Point.givenHyperbolicPolarCoordinates(hR,theta));
 }
 
+var makeMap = function(t){
+  var regions;
+
+  var color;
+  var polygonsIdx = 0;
+  var colorIdx = 0;
+  var lineIdx = 0;
+  let colors = [];
+  let polygons = [[]];
+  let lines = [[]];
+
+
+  //Parsing code taken from http://gmap.cs.arizona.edu
+  regions = t.children[0].attr_list[0].eq.trim().split(/\s+/);
+  // parse xdot for region info
+  for (var i = 0; i < regions.length; i++) {
+      if (regions[i] == "c") { // following specifies color
+          i += 2;
+          colors[colorIdx] = regions[i];
+
+          if (colors[colorIdx].charAt(0) == '-') { // some color hex's have '-' before
+              colors[colorIdx] = colors[colorIdx].substring(1);
+          }
+          colorIdx++;
+
+      } else if (regions[i] == "P") { // following is a polygon
+          i++;
+          var size = parseInt(regions[i]); // number of points in polygon
+
+          var polygon = regions.slice(i + 1, i + 1 + size * 2);
+
+          polygon = toCounterClockwise(polygon); // this many dimensions for GeoJson polygon coordinates
+          polygons[polygonsIdx++] = polygon;
+      } else if (regions[i] == "L") { // following is a line border of the polygon
+          i++;
+          var size = parseInt(regions[i]);
+
+          var line = regions.slice(i + 1, i + 1 + size * 2);
+          lines[lineIdx++] = line;
+      }
+  }
+
+
+//console.log(polygons);
+myPolygons = [];
+for(i=0; i<lines.length; i++){
+ myPolygons.push([])
+ for (j=0; j < lines[i].length; j+=2){
+   myPolygons[i].push(polygonStrToHyperbolic(lines[i][j],lines[i][j+1]));
+ }
+}
+
+polygonList = [];
+for(i = 0; i<myPolygons.length; i++){
+ polygonList.push(HyperbolicCanvas.Polygon.givenVertices(myPolygons[i]));
+}
+
+return({
+  polygonList: polygonList,
+  colors: colors
+});
+
+}
+
 var makeGraph = function(V,E){
   let i;
   let name;
 
   let nodeList = [];
-  let allX = 0;
-  let allY = 0;
-  let count = 0;
 
-  for (name in V){
-    pos = parse_pos(V[name].pos);
-    allX += pos[0];
-    allY += pos[1];
-    count += 1;
-  }
 
-  originTrans = [allX/count,allY/count];
 
   for (name in V){
     pos = parse_pos(V[name].pos);
     V[name].node = new Node(pos[0]-originTrans[0],pos[1]-originTrans[1]);
     V[name].hPos = lambertAzimuthal(V[name].node.r,V[name].node.theta);
-    if (V[name].label){
+    if (V[name].label && V[name].label != "\\N" ){
       V[name].labelPos = {
         name: V[name].label,
         nameLoc: new Node(pos[0],pos[1])
@@ -201,10 +257,7 @@ var makeGraph = function(V,E){
 
   let pathList = [];
   for (i in E){
-    pathList.push(HyperbolicCanvas.Line.givenTwoPoints(
-      V[E[i].v].hPos,
-      V[E[i].w].hPos
-    ));
+    pathList.push([V[E[i].v],V[E[i].w]]);
   }
 
   return {
@@ -221,89 +274,63 @@ var makeGraph = function(V,E){
     let translateX;
     let translateY;
 
-    var g = graphlibDot.read(readTextFile("graphs/colors.dot"));
+    var g = graphlibDot.read(readTextFile(graphStr));
     let V = g._nodes;
     let E = g._edgeObjs;
 
+    let allX = 0;
+    let allY = 0;
+    let count = 0;
 
-    t = DotParser.parse(readTextFile("graphs/colors_map.dot"));
-    console.log(t.children[0].attr_list[0].eq.trim().split(/\s+/));
-  let parsed = true;
-   var regions;
+    for (name in V){
+      pos = parse_pos(V[name].pos);
+      allX += pos[0];
+      allY += pos[1];
+      count += 1;
+    }
 
-   var color;
-   var polygonsIdx = 0;
-   var colorIdx = 0;
-   var lineIdx = 0;
-   let colors = [];
-   let polygons = [[]];
-   let lines = [[]];
-
-
-   //Parsing code taken from http://gmap.cs.arizona.edu
-   regions = t.children[0].attr_list[0].eq.trim().split(/\s+/);
-   // parse xdot for region info
-   for (var i = 0; i < regions.length; i++) {
-       if (regions[i] == "c") { // following specifies color
-           i += 2;
-           colors[colorIdx] = regions[i];
-
-           if (colors[colorIdx].charAt(0) == '-') { // some color hex's have '-' before
-               colors[colorIdx] = colors[colorIdx].substring(1);
-           }
-           colorIdx++;
-
-       } else if (regions[i] == "P") { // following is a polygon
-           i++;
-           var size = parseInt(regions[i]); // number of points in polygon
-
-           var polygon = regions.slice(i + 1, i + 1 + size * 2);
-
-           polygon = toCounterClockwise(polygon); // this many dimensions for GeoJson polygon coordinates
-           polygons[polygonsIdx++] = polygon;
-       } else if (regions[i] == "L") { // following is a line border of the polygon
-           i++;
-           var size = parseInt(regions[i]);
-
-           var line = regions.slice(i + 1, i + 1 + size * 2);
-           lines[lineIdx++] = line;
-       }
-   }
-
-
-//console.log(polygons);
-myPolygons = [];
-for(i=0; i<lines.length; i++){
-  myPolygons.push([])
-  for (j=0; j < lines[i].length; j+=2){
-    myPolygons[i].push(polygonStrToHyperbolic(lines[i][j],lines[i][j+1]));
-  }
-}
-
-polygonList = [];
-for(i = 0; i<myPolygons.length; i++){
-  polygonList.push(HyperbolicCanvas.Polygon.givenVertices(myPolygons[i]));
-}
+    originTrans = [allX/count,allY/count];
 
     G = makeGraph(V,E);
+
+    t = DotParser.parse(readTextFile(graphStr));
+    console.log(t);
+
+    /*for(i in t.children){
+      if(t.children[i].type === "node_stmt"){
+        console.log(t.children[i].node_id.id);
+      }
+    }*/
+
+    Map = makeMap(t);
+
+
 
 
     var ctx = canvas.getContext();
 
     //canvas.setContextProperties(defaultProperties);
 
-    canvas.setContextProperties({ fillStyle: '#66B2FF' });
+    var defaultProperties = {
+      lineJoin: 'round',
+      lineWidth: 1,
+      strokeStyle: "#D3D3D3",
+      fillStyle: '#66B2FF'
+    }
+
+    canvas.setContextProperties(defaultProperties);
 
     //ctx.fillText('Hello world',100,500);
-    var location = HyperbolicCanvas.Point.givenCoordinates(.1,.1);
+    var location = HyperbolicCanvas.Point.givenCoordinates(0,0);
     var render = function (event) {
       canvas.clear();
 
 
 
-      for(i in polygonList){
-        ctx.fillStyle = colors[i];
-        path = canvas.pathForHyperbolic(polygonList[i]);
+      for(i in Map.polygonList){
+        ctx.fillStyle = Map.colors[i];
+        ctx.strokeStyle = "black";
+        path = canvas.pathForHyperbolic(Map.polygonList[i]);
         canvas.fillAndStroke(path);
       }
 
@@ -313,11 +340,15 @@ for(i = 0; i<myPolygons.length; i++){
       //console.log(canvas.getCanvasPixelCoords(point));
 
       i = 0;
-      /*for(i in G.pathList){
-        path = canvas.pathForHyperbolic(G.pathList[i]);
+      for(i in G.pathList){
+        ctx.strokeStyle = "grey";
+        path = canvas.pathForHyperbolic(HyperbolicCanvas.Line.givenTwoPoints(
+          G.pathList[i][0].hPos,
+          G.pathList[i][1].hPos
+        ));
         canvas.stroke(path);
       }
-      */
+
 
       i = 0;
       for(i in G.nodeList){
@@ -328,9 +359,12 @@ for(i = 0; i<myPolygons.length; i++){
         canvas.fillAndStroke(path);
 
         ctx.fillStyle = "black";
-        ctx.font = "20px Arial"
+        //ctx.font = "20px Arial"
+        nodeDis = G.nodeList[i].hPos._euclideanRadius
+        if( nodeDis < .9){
+          fontSize = Math.ceil(30 *(1-nodeDis));
+          ctx.font = fontSize.toString() + "px Arial";
 
-        if(G.nodeList[i].hPos._euclideanRadius < .8){
           let pixelCoord = canvas.getCanvasPixelCoords(G.nodeList[i].hPos);
           ctx.fillText(G.nodeList[i].labelPos.name, pixelCoord[0],pixelCoord[1]);
         }
@@ -361,26 +395,18 @@ var changeCenter = function(center){
   r = center.getEuclideanRadius();
   theta = center.getAngle();
 
-  a = 1;
-  b = math.Complex.fromPolar(r,theta).neg();
-  c = math.Complex.fromPolar(r,theta).conjugate().neg();
-  d = 1;
-  transform = [a,b,c,d];
+  transform = {
+    a: 1,
+    b: math.Complex.fromPolar(r,theta).neg(),
+    c: math.Complex.fromPolar(r,theta).conjugate().neg(),
+    d: 1
+  };
 
   //VERY important to remember
   location = mobius(location,transform);
 
-  for (x in polygonList){
-    polygonList[x] = transformPolygon(polygonList[x],transform);
-  }
-
-  //Technically you're doing this n^2 more times than neccessary.
-  //Find a way to just redraw the edges at every step.
-  for (x in G.pathList){
-    p0 = mobius(G.pathList[x].getP0(),transform);
-    p1 = mobius(G.pathList[x].getP1(),transform);
-
-    G.pathList[x] = HyperbolicCanvas.Line.givenTwoPoints(p0,p1);
+  for (x in Map.polygonList){
+    Map.polygonList[x] = transformPolygon(Map.polygonList[x],transform);
   }
 
   for(i in G.nodeList){
