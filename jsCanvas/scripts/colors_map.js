@@ -7,13 +7,12 @@
     window.HyperbolicCanvas.scripts = {};
   }
 
-var graphStr = "graphs/colors_bubble.dot"
-
 let dragged = false;
 let flag = true;
 var SCROLL_SPEED = 2;
-var SCALE_FACTOR = .005;
+var SCALE_FACTOR = 5;
 let zoom = 1;
+let totalZoom = 1;
 
 function toCounterClockwise(polygon) {
     var sum = 0;
@@ -153,8 +152,8 @@ var parse_pos = function(strPos){
 
 class Node {
   constructor(x,y){
-    this.x = x*SCALE_FACTOR;
-    this.y = y*SCALE_FACTOR;
+    this.x = x;
+    this.y = y;
     this.r = this.calcR();
     this.theta = this.calcTheta();
   }
@@ -270,8 +269,8 @@ var makeGraph = function(V,E){
 
   for (name in V){
     pos = parse_pos(V[name].pos);
-    V[name].node = new Node(pos[0]-originTrans[0],pos[1]-originTrans[1]);
-    V[name].hPos = lambertAzimuthal(V[name].node.r,V[name].node.theta);
+    V[name].node = new Node(pos[0],pos[1]);
+    V[name].hPos = HyperbolicCanvas.Point.givenCoordinates(V[name].node.x,V[name].node.y);
     if (V[name].label && V[name].label != "\\N" ){
       V[name].labelPos = {
         name: V[name].label,
@@ -300,16 +299,36 @@ var makeGraph = function(V,E){
 
 }
 
-  HyperbolicCanvas.scripts['scrolling'] = function (canvas) {
+  HyperbolicCanvas.scripts['colors_map'] = function (canvas) {
     var location = HyperbolicCanvas.Point.ORIGIN;
     let n = 0;
 
     let translateX;
     let translateY;
 
-    var g = graphlibDot.read(readTextFile(graphStr));
-    let V = g._nodes;
-    let E = g._edgeObjs;
+    V = {}
+    E = {}
+    let aaaa = math.complex(2,3);
+    console.log(aaaa.toPolar());
+
+    t = DotParser.parse(readTextFile('graphs/hyperbolic_colors.dot'));
+
+    for (i in t.children){
+      //console.log(t.children[i]);
+      if(t.children[i].type == 'node_stmt'){
+        v = t.children[i].node_id.id
+        V[v] = {}
+        for(j in t.children[i].attr_list){
+          if(t.children[i].attr_list[j].id === 'pos'){
+            V[v].pos = t.children[i].attr_list[j].eq
+          }
+        }
+      }
+      if(t.children[i].type == 'edge_stmt'){
+        E[i] = {v: t.children[i].edge_list[0].id,
+                w: t.children[i].edge_list[1].id}
+      }
+    }
 
     let allX = 0;
     let allY = 0;
@@ -325,8 +344,6 @@ var makeGraph = function(V,E){
     originTrans = [allX/count,allY/count];
 
     G = makeGraph(V,E);
-
-    t = DotParser.parse(readTextFile(graphStr));
     //console.log(t);
 
     /*for(i in t.children){
@@ -334,13 +351,11 @@ var makeGraph = function(V,E){
         console.log(t.children[i].node_id.id);
       }
     }*/
-    console.log(t.children[0].attr_list[0].eq)
     if(t.children[0].attr_list[0].eq){
-      console.log("I am here!")
-      Map = makeMap(t);
+      //Map = makeMap(t);
     }
 
-
+    console.log(G.nodeList)
 
 
     var ctx = canvas.getContext();
@@ -473,7 +488,13 @@ var whileDragging = function(e){
 
 var scroll = function(e){
   zoom = 1 + e.deltaY*.01;
-  changeCenter(location,zoom);
+  totalZoom = totalZoom + e.deltaY*.01;
+  if(totalZoom < 300 && totalZoom >-300){
+    changeCenter(location,zoom);
+  }
+  else{
+    totalZoom = totalZoom - e.deltaY*.01;
+  }
 }
 
     //canvas.getCanvasElement().addEventListener('click', incrementN);
@@ -482,8 +503,8 @@ var scroll = function(e){
     canvas.getCanvasElement().addEventListener('mousedown', myDown);
     canvas.getCanvasElement().addEventListener('mouseup', myUp);
 
-
-
+    //console.log(G.nodeList[0])
+    //changeCenter(G.nodeList[0].hPos);
 
     requestAnimationFrame(render);
   };

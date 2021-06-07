@@ -122,7 +122,7 @@ var parse_pos = function(strPos){
   return([parseFloat(Coords[0]),parseFloat(Coords[1])]);
 }
 
-var SCALE_FACTOR = .005;
+var SCALE_FACTOR = .5;
 
 class Node {
   constructor(x,y){
@@ -218,12 +218,12 @@ var makeGraph = function(V,E){
     var location = HyperbolicCanvas.Point.ORIGIN;
     let n = 0;
 
-    var g = graphlibDot.read(readTextFile("graphs/colors.dot"));
+    var g = graphlibDot.read(readTextFile("graphs/kk_tree.dot"));
     let V = g._nodes;
     let E = g._edgeObjs;
 
     //console.log(readTextFile("scripts/colors_bubble.dot"));
-    t = DotParser.parse(readTextFile("graphs/colors_map.dot"));
+    t = DotParser.parse(readTextFile("graphs/my_colors.dot"));
     console.log(t.children[0].attr_list[0].eq.trim().split(/\s+/));
   let parsed = true;
    var regions;
@@ -306,11 +306,11 @@ for(i = 0; i<myPolygons.length; i++){
       }
 
       i = 0;
-      /*for(i in G.pathList){
+      for(i in G.pathList){
         path = canvas.pathForHyperbolic(G.pathList[i]);
         canvas.stroke(path);
       }
-      */
+
 
       i = 0;
       for(i in G.nodeList){

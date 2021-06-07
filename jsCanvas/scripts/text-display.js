@@ -106,7 +106,7 @@ var parse_pos = function(strPos){
   return([parseFloat(Coords[0]),parseFloat(Coords[1])]);
 }
 
-var SCALE_FACTOR = .005;
+var SCALE_FACTOR = .05;
 
 class Node {
   constructor(x,y){
@@ -189,7 +189,7 @@ var makeGraph = function(V,E){
     var location = HyperbolicCanvas.Point.ORIGIN;
     let n = 0;
 
-    var g = graphlibDot.read(readTextFile("graphs/trad_bubble.dot"));
+    var g = graphlibDot.read(readTextFile("graphs/my_colors.dot"));
     let V = g._nodes;
     let E = g._edgeObjs;
     console.log(g);

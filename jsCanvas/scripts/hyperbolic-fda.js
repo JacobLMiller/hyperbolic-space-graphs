@@ -7,12 +7,12 @@
     window.HyperbolicCanvas.scripts = {};
   }
 
-var graphStr = "graphs/colors_bubble.dot"
+var graphStr = "graphs/hyperbolic_triangle.dot"
 
 let dragged = false;
 let flag = true;
-var SCROLL_SPEED = 2;
-var SCALE_FACTOR = .005;
+var SCROLL_SPEED = 10;
+var SCALE_FACTOR = 10;
 let zoom = 1;
 
 function toCounterClockwise(polygon) {
@@ -88,16 +88,12 @@ var polygonStrToHyperbolic = function(xStr,yStr){
 
 }
 
-var transformPolygon = function(P,transform,zoom){
+var transformPolygon = function(P,transform){
 
 
   vertices = P.getVertices();
   newVertices = [];
   for (i in vertices){
-    hR = vertices[i].getHyperbolicRadius()*zoom
-    theta = vertices[i].getAngle()
-    vertices[i] = HyperbolicCanvas.Point.givenHyperbolicPolarCoordinates(hR,theta)
-
     newVertices.push(mobius(vertices[i],transform));
   }
   /*for (i in vertices){
@@ -114,24 +110,6 @@ var mobius = function(z,transform){
   b = transform[1];
   c = transform[2];
   d = transform[3];*/
-
-  if (transform.a != 1){
-    numerator = math.multiply(transform.a,z0);
-    numerator = math.add(numerator,transform.b);
-    denominator = math.multiply(transform.c,z0);
-    denominator = math.add(denominator,transform.d);
-    newPoint = math.divide(numerator,denominator).toPolar();
-    if(newPoint.r > 1){
-      return(HyperbolicCanvas.Point.givenEuclideanPolarCoordinates(
-        .9999,
-        newPoint.phi)
-      );
-    }
-    return(HyperbolicCanvas.Point.givenEuclideanPolarCoordinates(
-      newPoint.r,
-      newPoint.phi)
-    );
-  }
 
   numerator = math.multiply(transform.a,z0);
   numerator = math.add(numerator,transform.b);
@@ -230,19 +208,13 @@ var makeMap = function(t){
       }
   }
 
-if (polygons.length > 0){
-  polygons = lines
-}
-else{
-  lines = polygons
-}
 
 //console.log(polygons);
 myPolygons = [];
-for(i=0; i<polygons.length; i++){
+for(i=0; i<lines.length; i++){
  myPolygons.push([])
- for (j=0; j < polygons[i].length; j+=2){
-   myPolygons[i].push(polygonStrToHyperbolic(polygons[i][j],polygons[i][j+1]));
+ for (j=0; j < lines[i].length; j+=2){
+   myPolygons[i].push(polygonStrToHyperbolic(lines[i][j],lines[i][j+1]));
  }
 }
 
@@ -250,8 +222,6 @@ polygonList = [];
 for(i = 0; i<myPolygons.length; i++){
  polygonList.push(HyperbolicCanvas.Polygon.givenVertices(myPolygons[i]));
 }
-
-console.log(polygonList)
 
 return({
   polygonList: polygonList,
@@ -271,7 +241,7 @@ var makeGraph = function(V,E){
   for (name in V){
     pos = parse_pos(V[name].pos);
     V[name].node = new Node(pos[0]-originTrans[0],pos[1]-originTrans[1]);
-    V[name].hPos = lambertAzimuthal(V[name].node.r,V[name].node.theta);
+    V[name].hPos = HyperbolicCanvas.Point.givenCoordinates(V[name].node.x,V[name].node.y);
     if (V[name].label && V[name].label != "\\N" ){
       V[name].labelPos = {
         name: V[name].label,
@@ -300,7 +270,7 @@ var makeGraph = function(V,E){
 
 }
 
-  HyperbolicCanvas.scripts['scrolling'] = function (canvas) {
+  HyperbolicCanvas.scripts['hyperbolic-fda'] = function (canvas) {
     var location = HyperbolicCanvas.Point.ORIGIN;
     let n = 0;
 
@@ -326,7 +296,7 @@ var makeGraph = function(V,E){
 
     G = makeGraph(V,E);
 
-    t = DotParser.parse(readTextFile(graphStr));
+    //t = DotParser.parse(readTextFile(graphStr));
     //console.log(t);
 
     /*for(i in t.children){
@@ -334,11 +304,8 @@ var makeGraph = function(V,E){
         console.log(t.children[i].node_id.id);
       }
     }*/
-    console.log(t.children[0].attr_list[0].eq)
-    if(t.children[0].attr_list[0].eq){
-      console.log("I am here!")
-      Map = makeMap(t);
-    }
+
+    //Map = makeMap(t);
 
 
 
@@ -432,7 +399,7 @@ var changeCenter = function(center,zoom=1){
   theta = center.getAngle();
 
   transform = {
-    a: 1,
+    a: zoom,
     b: math.Complex.fromPolar(r,theta).neg(),
     c: math.Complex.fromPolar(r,theta).conjugate().neg(),
     d: 1
@@ -442,13 +409,10 @@ var changeCenter = function(center,zoom=1){
   location = mobius(location,transform);
 
   for (x in Map.polygonList){
-    Map.polygonList[x] = transformPolygon(Map.polygonList[x],transform,zoom);
+    Map.polygonList[x] = transformPolygon(Map.polygonList[x],transform);
   }
 
   for(i in G.nodeList){
-    hR = G.nodeList[i].hPos.getHyperbolicRadius()*zoom
-    theta = G.nodeList[i].hPos.getAngle()
-    G.nodeList[i].hPos = HyperbolicCanvas.Point.givenHyperbolicPolarCoordinates(hR,theta)
     G.nodeList[i].hPos = mobius(G.nodeList[i].hPos,transform);
   }
 
