@@ -104,69 +104,6 @@ function toggleAdvanced(first_load) {
 			</tbody></table>
 		</div>
 
-		<div id='map_advanced_options' class="wide center hide">
-			<script>toggleAdvanced(true)</script>
-			<fieldset>
-				<legend>advanced options for map generation</legend>
-
-				<div style="width: 50%; float:left">
-					<label for='vis_type' class="labelAdvanced">Visualization Type:</label>
-					<select name="vis_type" id="vis_type">
-						<option value="node-link">Node-Link Diagram</option>
-						<option value="gmap" selected='selected'>GMap</option>
-						<option value="map-sets">Map Sets</option>
-						<option value="bubble-sets">Bubble Sets</option>
-						<option value="line-sets">Line Sets</option>
-						<option value="spherical">Spherical</option>
-					</select><br>
-
-					<label for='layout_algorithm' class="labelAdvanced">Layout Algorithm:</label>
-					<select name="layout_algorithm" id="layout_algorithm">
-						<option value="sfdp" selected='selected'>sfdp</option>
-						<option value="neato">neato</option>
-						<option value="graph">use graph setting</option>
-					</select><br>
-
-					<label for='cluster_algorithm' class="labelAdvanced">Cluster Algorithm:</label>
-					<select name="cluster_algorithm" id="cluster_algorithm">
-						<optgroup label="fragmented">
-							<option value="infomap">infomap</option>
-							<option value="modularity">modularity</option>
-							<option value="k-means">k-means</option>
-							<option value="hierarchical">hierarchical</option>
-						</optgroup>
-						<optgroup label="contiguous">
-							<option value="cont-infomap">infomap</option>
-							<option value="cont-modularity">modularity</option>
-							<option value="cont-k-means" selected='selected'>k-means</option>
-							<option value="cont-hierarchical">hierarchical</option>
-						</optgroup>
-						<option value="graph">use graph setting</option>
-					</select><br>
-				</div>
-
-				<div style="width: 50%; float:right">
-					<label for='color_scheme' class="labelAdvanced">Color Scheme:</label>
-					<select name="color_scheme" id="color_scheme">
-						<option value="0">no polygons</option>
-						<option value="1" selected='selected'>pastel</option>
-						<option value="2">blue to yellow</option>
-						<option value="3">white to red</option>
-						<option value="4">light grey to red</option>
-						<option value="5">primary colors</option>
-						<option value="6">sequential single hue red</option>
-						<option value="7">Adam color scheme</option>
-						<option value="8">Adam blend</option>
-						<option value="9">sequential single hue lighter red</option>
-						<option value="10">light grey</option>
-						<option value="bubble-sets">Bubble Sets</option>
-					</select>
-
-					<label for='semantic_zoom' class="labelAdvanced">Semantic Zoom:</label>
-					<input type="checkbox" name="semantic_zoom" value="true" /><br>
-				</div>
-			</fieldset>
-		</div>
 	</div>
 
 </form>

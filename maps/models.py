@@ -35,7 +35,6 @@ class Task(models.Model):
             'status': self.status,
             'width': self.width,
             'height': self.height,
-            'semantic_zoom': self.semantic_zoom,
         }
 
     def json_metadata(self):

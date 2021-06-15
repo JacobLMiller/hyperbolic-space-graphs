@@ -898,14 +898,7 @@ var whileDragging = function(e){
 }
 
 var scroll = function(e){
-  zoom = 1 + e.deltaY*.01;
-  totalZoom = totalZoom + e.deltaY*.01;
-  if(totalZoom < 300 && totalZoom >-300){
-    changeCenter(location,zoom);
-  }
-  else{
-    totalZoom = totalZoom - e.deltaY*.01;
-  }
+  
 }
 
     //canvas.getCanvasElement().addEventListener('click', incrementN);
