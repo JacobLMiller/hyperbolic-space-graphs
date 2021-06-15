@@ -1,0 +1,6 @@
+Usage: mapsets [options] input_file
+When input_file is not supplied, the program reads from stdin.
+
+Allowed options:
+  -o
+  Output file name (stdout, if no output file is supplied)
