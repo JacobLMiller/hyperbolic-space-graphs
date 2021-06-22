@@ -2,6 +2,8 @@ Hyperbolic realization of graphs
 ================
 This webserver will compute a graph layout in hyperbolic space, using tangent planes as described in the below paper. The graphs are displayed in a Poincare disk.
 
+Explanation video:
+
 [![Explanation Video](https://img.youtube.com/vi/pA-CEC3FNcU/default.jpg)](https://www.youtube.com/watch?v=pA-CEC3FNcU)
 
 
