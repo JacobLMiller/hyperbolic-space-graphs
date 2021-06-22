@@ -444,8 +444,8 @@ def tuple_to_string(convert_tuple):
 
 
 
-g = ig.Graph.GRG(35,.3)
-g.write_dot('jsCanvas/graphs/hyperbolic_colors.dot')
+g = ig.Graph.Famous("Chvatal")
+g.write_dot('hyperbolic_colors.dot')
 
 
 

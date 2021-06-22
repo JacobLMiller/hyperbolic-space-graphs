@@ -2,7 +2,7 @@ Hyperbolic realization of graphs
 ================
 This webserver will compute a graph layout in hyperbolic space, using tangent planes as described in the below paper. The graphs are displayed in a Poincare disk.
 
-Video showing the algorithm in action available here: https://youtu.be/CesUj4p7GGM
+<iframe width="560" height="315" src="https://www.youtube.com/embed/pA-CEC3FNcU" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 Kobourov, S., Wampler, K.: Non-Euclidean spring embedders. IEEE Trans. Vis.
 Comput. Graph. 11(6), 757–767 (2005). [doi](https://doi.org/10.1109/TVCG.2005.103)
