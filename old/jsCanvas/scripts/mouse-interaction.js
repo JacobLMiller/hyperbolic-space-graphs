@@ -15,12 +15,18 @@ let boolVar = true;
     var rotationInterval = Math.TAU / 800;
     var radius = 1;
 
+    var ctx = canvas.getContext();
     canvas.setContextProperties({ fillStyle: '#33FFFF' });
 
     var render = function (event) {
       canvas.clear();
 
       var polygon = HyperbolicCanvas.Polygon.givenHyperbolicNCenterRadius(n, location, radius, rotation);
+      let lines = polygon.getLines();
+      let lineLengths = [];
+      for (let i = 0; i<lines.length;i++){
+        lineLengths.push(lines[i].getHyperbolicLength());
+      }
 
 
       if (boolVar){
@@ -28,15 +34,18 @@ let boolVar = true;
         boolVar = false;
       }
 
-      var point1 = HyperbolicCanvas.Point.givenCoordinates(.5,.5)
-      var point2 = HyperbolicCanvas.Point.givenCoordinates(-.5,-.5)
-
-      let line = HyperbolicCanvas.Line.givenTwoPoints(point1,point2);
-
       if (polygon) {
         var path = canvas.pathForHyperbolic(polygon);
         //var path2 = canvas.pathForHyperbolic(line);
+
         canvas.fillAndStroke(path);
+        
+        ctx.fillStyle = 'black'
+        ctx.font = "20px Arial";
+        ctx.textAlign = 'center';
+        let pixelCoord = canvas.getCanvasPixelCoords(lines[0].getHyperbolicMidpoint());
+        ctx.fillText(lineLengths[0].toString(), pixelCoord[0],pixelCoord[1]);
+        ctx.fillStyle = 'grey'
         //canvas.fillAndStroke(path2);
       }
       requestAnimationFrame(render);

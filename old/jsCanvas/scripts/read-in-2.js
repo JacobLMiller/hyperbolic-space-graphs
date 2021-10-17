@@ -122,7 +122,7 @@ var parse_pos = function(strPos){
   return([parseFloat(Coords[0]),parseFloat(Coords[1])]);
 }
 
-var SCALE_FACTOR = .5;
+var SCALE_FACTOR = .01;
 
 class Node {
   constructor(x,y){
@@ -218,7 +218,7 @@ var makeGraph = function(V,E){
     var location = HyperbolicCanvas.Point.ORIGIN;
     let n = 0;
 
-    var g = graphlibDot.read(readTextFile("graphs/kk_tree.dot"));
+    var g = graphlibDot.read(readTextFile("graphs/colors_map.dot"));
     let V = g._nodes;
     let E = g._edgeObjs;
 

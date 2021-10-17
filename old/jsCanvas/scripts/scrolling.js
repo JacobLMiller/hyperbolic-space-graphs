@@ -7,12 +7,12 @@
     window.HyperbolicCanvas.scripts = {};
   }
 
-var graphStr = "graphs/colors_bubble.dot"
+var graphStr = "graphs/hyperbolic_colors.dot"
 
 let dragged = false;
 let flag = true;
 var SCROLL_SPEED = 2;
-var SCALE_FACTOR = .005;
+var SCALE_FACTOR = 1/500;
 let zoom = 1;
 
 function toCounterClockwise(polygon) {
@@ -85,7 +85,7 @@ var polygonStrToHyperbolic = function(xStr,yStr){
   node = new Node(x-originTrans[0],y-originTrans[1]);
 
   return(lambertAzimuthal(node.r,node.theta));
-
+  //return(HyperbolicCanvas.Point.givenCoordinates(x,y))
 }
 
 var transformPolygon = function(P,transform,zoom){
@@ -183,7 +183,7 @@ class Node {
 }
 
 var lambertAzimuthal = function(r,theta){
-  hR = math.acosh((r*r + 2)/2);
+  hR = math.acosh((r*r+2)/2);
 
   return(HyperbolicCanvas.Point.givenHyperbolicPolarCoordinates(hR,theta));
 }
@@ -202,6 +202,7 @@ var makeMap = function(t){
 
   //Parsing code taken from http://gmap.cs.arizona.edu
   regions = t.children[0].attr_list[0].eq.trim().split(/\s+/);
+  console.log(regions)
   // parse xdot for region info
   for (var i = 0; i < regions.length; i++) {
       if (regions[i] == "c") { // following specifies color
@@ -269,9 +270,11 @@ var makeGraph = function(V,E){
 
 
   for (name in V){
+    console.log(V[name])
     pos = parse_pos(V[name].pos);
-    V[name].node = new Node(pos[0]-originTrans[0],pos[1]-originTrans[1]);
-    V[name].hPos = lambertAzimuthal(V[name].node.r,V[name].node.theta);
+    V[name].node = new Node(pos[0],pos[1]);
+    //V[name].hPos = lambertAzimuthal(V[name].node.r,V[name].node.theta);
+    V[name].hPos = HyperbolicCanvas.Point.givenHyperbolicPolarCoordinates(pos[0],pos[1]);
     if (V[name].label && V[name].label != "\\N" ){
       V[name].labelPos = {
         name: V[name].label,
@@ -316,9 +319,9 @@ var makeGraph = function(V,E){
     let count = 0;
 
     for (name in V){
-      pos = parse_pos(V[name].pos);
-      allX += pos[0];
-      allY += pos[1];
+      //pos = parse_pos(V[name].pos);
+      //allX += pos[0];
+      //allY += pos[1];
       count += 1;
     }
 
@@ -335,7 +338,7 @@ var makeGraph = function(V,E){
       }
     }*/
     console.log(t.children[0].attr_list[0].eq)
-    if(t.children[0].attr_list[0].eq){
+    if(t.children[0].attr_list[0].eq.trim){
       console.log("I am here!")
       Map = makeMap(t);
     }
@@ -402,7 +405,7 @@ var makeGraph = function(V,E){
           ctx.font = fontSize.toString() + "px Arial";
 
           let pixelCoord = canvas.getCanvasPixelCoords(G.nodeList[i].hPos);
-          ctx.fillText(G.nodeList[i].labelPos.name, pixelCoord[0],pixelCoord[1]);
+          //ctx.fillText(G.nodeList[i].labelPos.name, pixelCoord[0],pixelCoord[1]);
         }
       }
 

@@ -97,7 +97,7 @@
     }
 
     var loadScript = function(graph){
-      var scriptName = getQueryVariable('script');
+      var scriptName = 'read_pos';
       var script = document.createElement('script');
       script.onload = function () {
         var canvas = HyperbolicCanvas.create('#hyperbolic-canvas', scriptName);
@@ -120,7 +120,7 @@
           var pair = vars[i].split("=");
           if(pair[0] == variable){return pair[1];}
         }
-        return('poincare_disk');
+        return('read_pos');
       };
 
       var ready = function (fn) {

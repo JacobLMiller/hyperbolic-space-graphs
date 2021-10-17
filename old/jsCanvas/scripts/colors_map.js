@@ -10,7 +10,7 @@
 let dragged = false;
 let flag = true;
 var SCROLL_SPEED = 2;
-var SCALE_FACTOR = 5;
+var SCALE_FACTOR = 1;
 let zoom = 1;
 let totalZoom = 1;
 
@@ -241,6 +241,8 @@ myPolygons = [];
 for(i=0; i<polygons.length; i++){
  myPolygons.push([])
  for (j=0; j < polygons[i].length; j+=2){
+
+   console.log(polygons[i][j])
    myPolygons[i].push(polygonStrToHyperbolic(polygons[i][j],polygons[i][j+1]));
  }
 }
@@ -270,7 +272,7 @@ var makeGraph = function(V,E){
   for (name in V){
     pos = parse_pos(V[name].pos);
     V[name].node = new Node(pos[0],pos[1]);
-    V[name].hPos = HyperbolicCanvas.Point.givenCoordinates(V[name].node.x,V[name].node.y);
+    V[name].hPos = HyperbolicCanvas.Point.givenHyperbolicPolarCoordinates(V[name].node.r,V[name].node.theta);
     if (V[name].label && V[name].label != "\\N" ){
       V[name].labelPos = {
         name: V[name].label,
@@ -310,7 +312,6 @@ var makeGraph = function(V,E){
     E = {}
     let aaaa = math.complex(2,3);
     console.log(aaaa.toPolar());
-
     t = DotParser.parse(readTextFile('graphs/hyperbolic_colors.dot'));
 
     for (i in t.children){
@@ -352,7 +353,7 @@ var makeGraph = function(V,E){
       }
     }*/
     if(t.children[0].attr_list[0].eq){
-      //Map = makeMap(t);
+      Map = makeMap(t);
     }
 
     console.log(G.nodeList)

@@ -39,18 +39,18 @@ def ceba_command():
 def bubblesets_command():
     script = CURPATH + "/external/BubbleSets.jar"
     return "java -cp " + script + " setvis.Main -p -r"
-    
+
 def colors_command():
     script = CURPATH + "/external/BubbleSets.jar"
     return "java -cp " + script + " setvis.Main -p -r -c"
-    
+
 def linesets_command():
     script = CURPATH + "/external/LineSets.jar"
     return "java -cp " + script + " setvis.Main -p -r"
-    
+
 def mapsets_command():
     return CURPATH + "/external/mapsets/mapsets"
-    
+
 def mapsets_post_command(color_scheme):
     if color_scheme == 'bubble-sets':
     	return "gvmap -e -a 0 -s 200"
@@ -58,7 +58,7 @@ def mapsets_post_command(color_scheme):
 
 def pointcloud_command():
     return CURPATH + "/external/pointcloud/pointcloud"
-    
+
 
 def removeNonAscii(s): return "".join(i for i in s if ord(i)<128)
 
@@ -213,4 +213,3 @@ def call_graphviz_scale(dot_rep, s1, s2):
 def set_status(task, s):
    	task.status = s
    	task.save()
-    

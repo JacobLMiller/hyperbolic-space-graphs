@@ -16,7 +16,7 @@ let totalZoom = 1;
 let myCount = 0;
 let bigCount = 0;
 let keepGoing = true;
-let graphStr = "graphs/music_map.dot"
+let graphStr = "graphs/colors_map.dot"
 
 let L0 = 5;
 let K0 = 20;

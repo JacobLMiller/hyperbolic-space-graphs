@@ -825,6 +825,15 @@ let random_circle_coordinates = function() {
         if (bigCount > 10){
           keepGoing = false;
           console.log("Embedding complete")
+          let distortion = 0;
+          for (i=0; i< G.nodeList.length; i ++){
+            for (let j = 0; j < i; j ++){
+              let dist = G.nodeList[i].hPos.hyperbolicDistanceTo(G.nodeList[j].hPos);
+              distortion = distortion + math.abs(dist-D[i][j])/D[i][j]
+            }
+          }
+          distortion = (1/choose(G.nodeList.length,2))*distortion
+          console.log(distortion)
         }
         current_max_delta = new_delta
         totalCount = 0
@@ -834,6 +843,14 @@ let random_circle_coordinates = function() {
 
       requestAnimationFrame(render);
     };
+
+    let choose = function(n, k){
+      let product = 1
+      for (i=1; i < k+1; i++){
+        product = product * (n-(k-1))/i
+      }
+      return product
+    }
 
     var resetLocation = function (event) {
       if (event) {

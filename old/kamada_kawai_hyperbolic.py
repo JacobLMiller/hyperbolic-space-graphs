@@ -52,7 +52,7 @@ def compute_l_table(d):
     for x in d:
         for y in x:
             maximum = max(maximum,y)
-    L0 = 2
+    L0 = 1
     L = L0/maximum
 
 
@@ -345,9 +345,9 @@ def compute_geometric_mean(G):
     return (allX/count,allY/count)
 
 def computeKKlayout(X):
-    rmtree('slideshow')
+    #rmtree('slideshow')
 
-    os.mkdir('slideshow')
+    #rowser-based Hyperbolic Visualization of Graphsos.mkdir('slideshow')
 
     D = all_pairs_shortest_path(X)
     L = compute_l_table(D)
@@ -422,15 +422,15 @@ def computeKKlayout(X):
         count2 += 1
 
         epsilon = p[1] - prev
-        if abs(epsilon) < .001:
-            bigCount += 1
-        if bigCount > 10:
-            break
+        #if abs(epsilon) < .001:
+        #    bigCount += 1
+        #if bigCount > 10:
+        #    break
 
         prev = p[1]
 
         count += 1
-        if count > 10000:
+        if count > 1000:
             break
 
 
@@ -444,7 +444,7 @@ def tuple_to_string(convert_tuple):
 
 
 
-g = ig.Graph.Famous("Chvatal")
+g = ig.Graph.GRG(50,.3)
 g.write_dot('hyperbolic_colors.dot')
 
 
@@ -454,8 +454,8 @@ g.write_dot('hyperbolic_colors.dot')
 #X = nx.drawing.nx_agraph.read_dot('jsCanvas/graphs/ring.dot')
 #print(X.nodes)
 
-#G = nx.tetrahedral_graph()
-#G = computeKKlayout(X)
+G = nx.hexagonal_lattice_graph(5,5)
+G = computeKKlayout(G)
 
 #Draw_SVG(G,1000)
 
@@ -479,14 +479,14 @@ for i in G.nodes:
     print(G.nodes[i])
     #G.nodes[i]['pos'] = tuple_to_string(G.nodes[i]['pos'])
     posDict[i] = G.nodes[i]['pos']
-    G.nodes[i]['pos'] = tuple_to_string(G.nodes[i]['pos'])
+    G.nodes[i]['mypos'] = tuple_to_string(G.nodes[i]['pos'])
 
 
-write_dot(X, "jsCanvas/graphs/hyperbolic_colors.dot")
+nx.drawing.nx_agraph.write_dot(G, "old/jsCanvas/graphs/hyperbolic_colors.dot")
 print("Completed")
 
 
-#nx.draw(G,posDict)  # networkx draw()
-
+nx.draw(G,pos=posDict)  # networkx draw()
+plt.show()
 #plt.draw()  # pyplot draw()
 #plt.show()
