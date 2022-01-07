@@ -2,11 +2,11 @@ import numpy as np
 import graph_tool.all as gt
 import pickle
 import networkx as nx
-from SGD_MDS import myMDS
 from MDS_classic import MDS
 from modHMDS import HMDS
 import modules.graph_io as graph_io
 import modules.distance_matrix as distance_matrix
+import time
 
 def classic_exp():
     G = [
@@ -79,4 +79,31 @@ def testing():
     Y.solve(100,debug=True)
     print(Y.calc_distortion())
 
-classic_exp()
+
+def revision_exp3():
+    Graphs = [gt.load_graph('graphs/colors.dot'),
+              gt.load_graph('graphs/music.dot'),
+              gt.load_graph('graphs/btree5.dot'),
+              gt.load_graph('graphs/1138_bus.dot')]
+
+    data_error = [[] for g in Graphs]
+    data_time = [[] for g in Graphs]
+    data = [[] for g in Graphs]
+    for g in range(len(Graphs)):
+        d = distance_matrix.get_distance_matrix(Graphs[g],distance_metric='spdm',verbose=False,normalize=False)
+        for i in range(10):
+            start = time.perf_counter()
+            Y = HMDS(d)
+            Y.solve()
+            end = time.perf_counter()
+
+            data_time[g].append(end-start)
+            data_error[g].append(Y.calc_distortion())
+        print("Error: ",sum(data_error[g])/len(data_error[g]))
+        print("Time: ", sum(data_time[g])/len(data_time[g]))
+        data[g] = {"time": data_time, "error": data_error}
+
+    import pickle
+    with open('data/revision_exp3_sgd.pkl', 'wb') as myfile:
+        pickle.dump(data, myfile)
+revision_exp3()

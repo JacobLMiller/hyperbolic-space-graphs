@@ -19,8 +19,8 @@ import os
 
 class MDS:
     def __init__(self,dissimilarities,geometry='euclidean',init_pos=np.array([])):
-        #self.d = scale_matrix(dissimilarities,math.pi)
-        self.d = dissimilarities
+        self.d = scale_matrix(dissimilarities,math.pi)
+        #self.d = dissimilarities
         self.d_max = np.max(dissimilarities)
         self.d_min = 1
         self.n = len(self.d)
@@ -123,8 +123,9 @@ class MDS:
         return (1/choose(self.n,2))*distortion
 
     def compute_step_size(self,count,num_iter):
-        lamb = math.log(self.eta_min/self.eta_max)/(num_iter-1)
-        return self.eta_max*math.exp(lamb*count)
+        #lamb = math.log(self.eta_min/self.eta_max)/(num_iter-1)
+        #return self.eta_max*math.exp(lamb*count)
+        return 0.001
 
 
     def init_point(self):
@@ -357,7 +358,8 @@ def choose(n,k):
 
 def main():
     #G = nx.drawing.nx_agraph.read_dot('input.dot')
-    G = nx.erdos_renyi_graph(50,0.5)
+    #G = nx.erdos_renyi_graph(50,0.5)
+    G = nx.tetrahedral_graph()
     P = nx.all_pairs_shortest_path_length(G)
     for i in P:
         print(i)
@@ -365,10 +367,10 @@ def main():
     print(d)
 
     #all_three(d)
-    Y = MDS(d,geometry='hyperbolic')
-    Y.solve(100)
+    Y = MDS(d,geometry='spherical')
+    Y.solve(5000)
     print(Y.calc_stress())
-    output_hyperbolic(G,Y.X)
-    output_euclidean(G,Y.X)
-    #output_sphere(G,Y.X)
+    #output_hyperbolic(G,Y.X)
+    #output_euclidean(G,Y.X)
+    output_sphere(G,Y.X)
 #main()

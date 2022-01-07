@@ -1,27 +1,92 @@
-import networkx as nx
 import numpy as np
-import igraph as ig
-import matplotlib.pyplot as plt
 #import tensorflow as tf
-import drawSvg as draw
-from math import sqrt
-import itertools
-#from SGD_MDS import myMDS
-# from euclid_random_graph import generate_graph
-# from hyper_random_graph import get_hyperbolic_graph
-
-from drawSvg import Drawing
-from hyperbolic import euclid, util
-from hyperbolic.poincare.shapes import *
-from hyperbolic.poincare import Transform
-
 import math
 import random
-import cmath
-import copy
-import time
-import os
-#from SGD_MDS import MDS
+import itertools
+
+
+from numba import jit
+
+@jit(nopython=True)
+def geodesic(u,v):
+    x1,y1 = u
+    x2,y2 = v
+    return np.arccosh(np.cosh(y1)*np.cosh(x2-x1)*np.cosh(y2)-np.sinh(y1)*np.sinh(y2))
+
+@jit(nopython=True)
+def satisfy(u,v,d,w,step):
+    """
+    u,v: hyperbolic vectors
+    d: ideal distance between u and v from shortest path matrix
+    w: associated weight of the pair u,v
+    step: Fraction of distance u and v should be moved along gradient
+    Returns: updated hyperbolic vectors of u and v
+    """
+    pq = u-v
+    mag = geodesic(u,v)
+    r = (mag-d)/2
+
+    wc = w*step
+    if wc > 1:
+        wc = 1
+    r = wc*r
+    m = pq*r /mag
+
+    return u-m, v+m
+
+@jit(nopython=True)
+def step_func1(count):
+    return 1/(5+count)
+
+@jit(nopython=True)
+def calc_stress(X,d,w):
+    """
+    Calculates the standard measure of stress: \sum_{i,j} w_{i,j}(dist(Xi,Xj)-D_{i,j})^2
+    Or, in English, the square of the difference of the realized distance and the theoretical distance,
+    weighted by the table w, and summed over all pairs.
+    """
+    stress = 0
+    for i in range(len(X)):
+        for j in range(i):
+            stress += w[i][j]*pow(geodesic(X[i],X[j])-d[i][j],2)
+    return pow(stress,0.5)
+
+@jit(nopython=True)
+def choose1(n,k):
+    product = 1
+    for i in range(1,k+1):
+        product *= (n-(k-1))/i
+    return product
+
+@jit(nopython=True)
+def calc_distortion(X,d,w):
+    distortion = 0
+    for i in range(len(X)):
+        for j in range(i):
+            distortion += abs((geodesic(X[i],X[j])-d[i][j]))/d[i][j]
+    return (1/choose1(len(X),2))*distortion
+
+@jit(nopython=True)
+def stoch_solver(X,d,w,indices,schedule,num_iter=15,epsilon=1e-3,debug=False):
+    step = 0.1
+    shuffle = random.shuffle
+
+    for count in range(num_iter):
+        for i,j in indices:
+            X[i],X[j] = satisfy(X[i],X[j],d[i][j],w[i][j],step)
+
+        step = schedule[count] if count <= len(schedule) else schedule[-1]
+        shuffle(indices)
+        if debug:
+            print(calc_distortion(X,d,w))
+    return X
+
+@jit(nopython=True)
+def set_step(w_max,eta_max,eta_min):
+    a = 1/w_max
+    b = -np.log(eta_min/eta_max)/(15-1)
+    step = lambda count: a/(pow(1+b*count,0.5))
+    return np.array([step(count) for count in range(15)])
 
 class HMDS:
     def __init__(self,dissimilarities,epsilon=0.1,init_pos=np.array([])):
@@ -43,8 +108,8 @@ class HMDS:
             self.X = np.asarray(self.X,dtype="float64")
 
         #Weight is inversely proportional to the square of the theoretic distance
-        self.w = [[1/pow(self.d[i][j],2) if self.d[i][j] > 0 else 0 for i in range(self.n)]
-                    for j in range(self.n)]
+        self.w = np.array([[1/pow(self.d[i][j],2) if self.d[i][j] > 0 else 0 for i in range(self.n)]
+                            for j in range(self.n)])
 
         #Values for step size calculation
         w_min = 1/pow(self.d_max,2)
@@ -53,94 +118,14 @@ class HMDS:
         self.eta_max = 1/w_min
         self.eta_min = epsilon/self.w_max
 
+        self.indices = np.array(list(itertools.combinations(range(self.n), 2)))
+
+        self.steps = set_step(self.w_max,self.eta_max,self.eta_min)
 
 
-
-    def solve(self,num_iter=15,epsilon=1e-3,debug=False,slideshow=False):
-        step,count  = self.eta_max, 0
-
-        #Array of indices to shuffle and choose pairs of nodes
-        indices = list(itertools.combinations(range(self.n), 2))
-        random.shuffle(indices)
-        weight = 1/choose(self.n,2)
-
-        double_count = 0
-        loss = []
-        self.stress_hist = []
-
-        while count < num_iter:
-            #print('Epoch: {0}.'.format(count), end='\r')
-            for k in range(len(indices)):
-                i = indices[k][0]
-                j = indices[k][1]
-                if i > j:
-                    i,j = j,i
-
-                pq = self.X[i] - self.X[j] #Vector between points
-                #pq = grad(self.X[i],self.X[j])
-                #print(grad(self.X[i],self.X[j]))
-                mag = geodesic(self.X[i],self.X[j])
-
-                r = (mag-self.d[i][j])/2 #min distance each node needs to move to satisfy d[i][j]
-
-                wc = self.w[i][j]*step #Weighted step size. If > 1, set it to 1
-                if wc > 1:
-                    wc = 1
-                r = wc*r
-
-                m = pq*r / mag
-
-                self.X[i] = self.X[i] - m
-                self.X[j] = self.X[j] + m
-
-                #mag = geodesic(self.X[i],self.X[j])
-                                #print(dist_grad)
-                if False:
-                    #print(dist_grad)
-                    dist_grad = (self.X[i]-self.X[j])
-
-                    #print(dist_grad)
-
-
-                    r = (mag-self.d[i][j])/2
-
-                    wc = self.w[i][j]*step
-                    if wc > 1:
-                        wc = 1
-                    r = wc*r
-
-                    m = dist_grad*r/mag
-
-
-                    self.X[i] = self.X[i] - m
-                    self.X[j] = self.X[j] + m
-                elif False:
-                    dist_grad = grad_old(self.X[i],self.X[j])
-                    T = weight*2*self.w[i][j]*dist_grad*(mag-self.d[i][j])
-                    self.X[i] = self.X[i] - step*T[0]
-                    self.X[j] = self.X[j] - step*T[1]
-
-                if count % 10 == 0:
-                    #Draw_SVG(self.X,double_count)
-                    double_count += 1
-
-
-            step = self.compute_step_size(count,num_iter)
-
-            count += 1
-            #output_hyperbolic(self.X,G,count)
-            random.shuffle(indices)
-            if debug:
-                stress = self.calc_stress()
-                #print(stress)
-                self.stress_hist.append(stress)
-            if slideshow:
-                Draw_SVG(self.X,count)
-
-
-        if debug:
-            return loss
-        return self.X
+    def solve(self,debug=False):
+        X = stoch_solver(self.X,self.d,self.w,self.indices,self.steps)
+        self.X = X
 
     def calc_stress(self):
         """
@@ -153,6 +138,22 @@ class HMDS:
             for j in range(i):
                 stress += self.w[i][j]*pow(geodesic(self.X[i],self.X[j])-self.d[i][j],2)
         return pow(stress,0.5)
+
+    def calc_stress2(self):
+        """
+        Calculates the standard measure of stress: \sum_{i,j} w_{i,j}(dist(Xi,Xj)-D_{i,j})^2
+        Or, in English, the square of the difference of the realized distance and the theoretical distance,
+        weighted by the table w, and summed over all pairs.
+        """
+        stress = 0
+        for i in range(self.n):
+            for j in range(i):
+                stress += self.w[i][j]*pow(geodesic(self.X[i],self.X[j])-self.d[i][j],2)
+        bottom = 0
+        for i in range(self.n):
+            for j in range(i):
+                bottom += self.d[i][j] ** 2
+        return stress/bottom
 
     def calc_distortion(self):
         """
@@ -189,7 +190,7 @@ def normalize(v):
 def mobius(z,a,b,c,d):
     return a*z+b/c*z+d
 
-def geodesic(xi,xj):
+def geodesic2(xi,xj):
     return lob_dist(xi,xj)
 
 def choose(n,k):

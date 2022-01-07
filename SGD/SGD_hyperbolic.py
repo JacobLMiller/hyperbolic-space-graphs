@@ -11,6 +11,12 @@ from math import sqrt
 from SGD_MDS import myMDS
 
 
+from drawSvg import Drawing
+from hyperbolic import euclid, util
+from hyperbolic.poincare.shapes import *
+from hyperbolic.poincare import Transform
+
+
 import math
 import random
 import cmath
@@ -44,7 +50,7 @@ class HMDS:
         self.w_max = 1/pow(self.d_min,2)
         #epsilon = 0.1
 
-        self.eta_max = 1/w_min
+        self.eta_max = 1/pow(w_min,0.5)
         self.eta_min = epsilon/self.w_max
 
 
@@ -59,15 +65,15 @@ class HMDS:
         indices = list(itertools.combinations(range(self.n), 2))
         random.shuffle(indices)
 
-        weight = 1/choose(self.n,2)
+        weight = 0
 
         grads = np.zeros(self.X.shape)
-        X = np.asarray(self.X)
+        X = np.zeros(self.X.shape)+self.X
         deltaX = 100
         max_change = 1
         uncapped = False
 
-        while count < num_iter:# and max_change > 0.003:
+        while count < num_iter+1:# and max_change > 0.003:
             max_change = -100
             for k in range(len(indices)):
                 i = indices[k][0]
@@ -78,30 +84,36 @@ class HMDS:
                 dist = polar_dist(X[i],X[j])
                 dloss = grad(X[i],X[j])*((dist-self.d[i][j])/2)
                 wc = step*self.w[i][j]
-                if wc > 1:
-                    wc = 1
+                if wc > 0.01:
+                    wc = 0.01
+                    uncapped = False
                 else:
                     uncapped = True
 
-                m = (dloss*wc)
-                X[i] = X[i] - m[0]
-                X[j] = X[j] - m[1]
+
+                m = dloss
+                X[i] = X[i] - wc*m[0]
+                X[j] = X[j] - wc*m[1]
+
+                if count % 10 == 0:
+                    #Draw_SVG(G,X,weight)
+                    weight += 1
 
                 new_dist = polar_dist(X[i],X[j])
                 deltaX = abs(dist-new_dist)
                 max_change = max(max_change,deltaX)
 
 
-            step = self.compute_step_size_old(count,num_iter)
+            #step = self.compute_step_size_old(count,num_iter)
 
-            #step = self.compute_step_size(count,num_iter,uncapped)
+            step = self.compute_step_size(count,num_iter,uncapped)
 
 
             count += 1
             #step = 1/count
             random.shuffle(indices)
             if debug:
-                #self.X = X
+                self.X = X
                 print(self.calc_stress())
                 #print(step)
 
@@ -138,11 +150,11 @@ class HMDS:
 
     def compute_step_size(self,count,num_iter,uncapped):
         lamb = math.log(self.eta_min/self.eta_max)/30
-        if uncapped:
+        if True:
             #return self.eta_max*math.exp(lamb*count)
-            return self.w_max/pow(1+5*count,0.5)
+            return self.w_max/pow(1+5*count,1)
         else:
-            return self.eta_max*math.exp(lamb*count)
+            return self.compute_step_size_old(count,num_iter)
 
 
     def init_point(self):
@@ -167,7 +179,7 @@ def grad(p,q):
     delta_r = -1*(cos(b-t)*sinh(a)*cosh(r)-sinh(r)*cosh(a))*bottom
     delta_t = -1*(sin(b-t)*sinh(a)*sinh(r))*bottom
 
-    return np.array([[delta_r,delta_t],[delta_a,delta_b]])
+    return np.array([[delta_r,-delta_t],[delta_a,-delta_b]])
 
 def part_of_dist(xi,xj):
     r,t = xi
@@ -250,12 +262,53 @@ def euclid_dist(x1,x2):
 def output_euclidean(G,X):
     pos = {}
     count = 0
-    for x in G.nodes():
-        pos[x] = X[count]
+    for i in G.nodes():
+        r,t = X[count]
+        Re = (math.exp(r)-1)/(math.exp(r)+1)
+        x = Re*np.cos(t)
+        y = Re*np.sin(t)
+        pos[i] = [x,y]
         count += 1
     nx.draw(G,pos=pos,with_labels=True)
     plt.show()
     plt.clf()
+
+def Draw_SVG(G,X,number):
+    points = []
+    lines = []
+    nodeDict = {}
+    d = Drawing(2.1,2.1, origin='center')
+    d.draw(euclid.shapes.Circle(0, 0, 1), fill='#ddd')
+
+    count = 0
+    for i in G.nodes():
+        r,t = X[count]
+        Re = (math.exp(r)-1)/(math.exp(r)+1)
+        x = Re*np.cos(t)
+        y = Re*np.sin(t)
+        G.nodes[i]['pos'] = [x,y]
+        count += 1
+
+    for i in G.nodes:
+        #print(G.nodes[i]['pos'])
+        #print(cmath.polar(complex(*G.nodes[i]['pos'])))
+        points.append(Point(G.nodes[i]['pos'][0],G.nodes[i]['pos'][1]))
+        nodeDict[i] = points[-1]
+
+    for i in G.edges:
+        lines.append(Line.fromPoints(*nodeDict[i[0]],*nodeDict[i[1]],segment=True))
+
+    #trans = Transform.shiftOrigin(points[0])
+
+    for i in lines:
+        d.draw(i,hwidth=.01,fill='black')
+
+    for i in points:
+        d.draw(i,hradius=.05,fill='green')
+
+
+    d.setRenderSize(w=1000)
+    d.saveSvg('slideshow/Test' + str(number) + '.svg')
 
 def output_hyperbolic(X,G):
     count = 0
@@ -278,10 +331,12 @@ def output_hyperbolic(X,G):
     nx.drawing.nx_agraph.write_dot(G, "/home/jacob/Desktop/hyperbolic-space-graphs/old/jsCanvas/graphs/hyperbolic_colors.dot")
     nx.drawing.nx_agraph.write_dot(G, "/home/jacob/Desktop/hyperbolic-space-graphs/maps/static/graphs/hyperbolic_colors.dot")
 
+
 #Program start
 def main():
     #G = nx.drawing.nx_agraph.read_dot('input.dot')
-    G = nx.triangular_lattice_graph(5,5)
+    #G = nx.triangular_lattice_graph(5,5)
+    G = nx.random_tree(90)
     #G = nx.full_rary_tree(2,30)
     d = np.asarray(all_pairs_shortest_path(G))/1
     d = d*1
@@ -289,7 +344,7 @@ def main():
     best_X = []
     best_score = 1000000
     Z = myMDS(d)
-    Z.solve(2)
+    Z.solve(15)
     init = np.ones(Z.X.shape)
     for i in range(len(Z.X)):
         r = pow(pow(Z.X[i][0],2)+pow(Z.X[i][1],2),0.5)
@@ -299,8 +354,9 @@ def main():
     #print(Z.calc_stress())
     #output_euclidean(G,Z.X)
     for i in range(1):
-        Y = HMDS(d,epsilon=0.25)
-        Y.solve(15,debug=True)
+        Y = HMDS(d,epsilon=0.15,init_pos=init)
+        Draw_SVG(G,Y.X,0)
+        Y.solve(100,debug=True)
         print(Y.calc_stress())
         if Y.calc_stress() < best_score:
             best_score = Y.calc_stress()
@@ -310,5 +366,14 @@ def main():
         #print(i)
     output_hyperbolic(best_X,G)
     #print(best_score)
-    #output_euclidean(best_X)
-#main()
+    output_euclidean(G,best_X)
+    Draw_SVG(G,Y.X,1)
+main()
+
+#G = nx.grid_graph([5,5])
+#G = nx.full_rary_tree(2,30)
+#d = np.asarray(all_pairs_shortest_path(G))/1
+
+#Y = HMDS(d)
+#Y.solve(100,debug=True)
+#Draw_SVG(G,Y.X,1)

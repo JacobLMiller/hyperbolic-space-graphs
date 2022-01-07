@@ -12,20 +12,20 @@ def hyperbolic_distance(p1,p2,c):
     r2,theta2 = p2
     return (math.acosh(math.cosh(c*r1)*math.cosh(c*r2) - math.sinh(c*r1)*math.sinh(c*r2)*math.cos(theta2-theta1)))/c
 
-K = -1
-c = pow(abs(K),0.5)
-R = 5
-alpha = 0.8
-N = 30
-G = nx.Graph()
-nodes = []
-for i in range(N):
-    nodes.append((i, {'pos': random_point_on_circle(R,alpha,c)}))
-G.add_nodes_from(nodes)
+def get_hyperbolic_graph(n,R=5,alpha=0.8):
+    K = -1
+    c = pow(abs(K),0.5)
+    N = n
+    G = nx.Graph()
+    nodes = []
+    for i in range(N):
+        nodes.append((i, {'pos': random_point_on_circle(R,alpha,c)}))
+    G.add_nodes_from(nodes)
 
-for i in range(N):
-    for j in range(i):
-        if R - hyperbolic_distance(nodes[i][1]['pos'],nodes[j][1]['pos'],c) > 0:
-            G.add_edge(i,j)
+    for i in range(N):
+        for j in range(i):
+            if R - hyperbolic_distance(nodes[i][1]['pos'],nodes[j][1]['pos'],c) > 0:
+                G.add_edge(i,j)
 
-nx.drawing.nx_agraph.write_dot(G, "input.dot")
+    nx.drawing.nx_agraph.write_dot(G, "input.dot")
+    return G

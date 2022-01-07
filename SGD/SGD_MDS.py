@@ -8,6 +8,8 @@ from math import sqrt
 import sys
 import itertools
 
+from euclid_random_graph import generate_graph
+
 
 import math
 import random
@@ -17,7 +19,7 @@ import time
 import os
 
 class myMDS:
-    def __init__(self,dissimilarities,init_pos=np.array([])):
+    def __init__(self,dissimilarities,k=5,weighted=False,init_pos=np.array([])):
         self.d = dissimilarities
         self.d_max = np.max(dissimilarities)
         self.d_min = 1
@@ -30,10 +32,14 @@ class myMDS:
                 self.X[i] = self.init_point()
             self.X = np.asarray(self.X)
 
-        self.w = [[ 1/pow(self.d[i][j],2) if i != j else 0 for i in range(self.n)]
-                    for j in range(self.n)]
-        for i in range(len(self.d)):
-            self.w[i][i] = 0
+        a = 1
+        b = 1
+        if weighted:
+            self.w = set_w(self.d,k)
+            print(self.w)
+        else:
+            self.w = [[ 1/math.exp(self.d[i][j]-1) if i != j else 0 for i in range(self.n)]
+                        for j in range(self.n)]
 
         w_min = 1/pow(self.d_max,2)
         w_max = 1/pow(self.d_min,2)
@@ -51,7 +57,7 @@ class myMDS:
         random.shuffle(indices)
         #random.shuffle(indices)
 
-        weight = 1/choose(self.n,2)
+        weight = 1
 
         while count < num_iter:
             for k in range(len(indices)):
@@ -62,12 +68,7 @@ class myMDS:
 
                 pq = self.X[i] - self.X[j] #Vector between points
 
-
-
-                #mag1 = math.sqrt(pq[0]*pq[0]+pq[1]*pq[1]) #Magnitude |p-q|
                 mag = geodesic(self.X[i],self.X[j])
-                #if abs(mag-mag1) > 1e-2:
-                #    print('somethings not right')
                 r = (mag-self.d[i][j])/2 #min distance to satisfy constraint
 
                 wc = self.w[i][j]*step
@@ -75,14 +76,13 @@ class myMDS:
                     wc = 1
                 r = wc*r
 
-                term3 = (mag-self.d[i][j])/2
-                #self.X[i] = self.X[i] - (wc*pq*term3)/geodesic(self.X[i],self.X[j])
-                #self.X[j] = self.X[j] + wc*pq*term3/geodesic(self.X[i],self.X[j])
-
-                m = (pq*term3*wc)/mag
+                m = (pq*r)/mag
 
                 self.X[i] = self.X[i] - m
                 self.X[j] = self.X[j] + m
+
+                #save_euclidean(self.X,weight)
+                #weight += 1
 
             step = self.compute_step_size(count,num_iter)
 
@@ -191,6 +191,16 @@ def euclid_dist(x1,x2):
     y = x2[1]-x1[1]
     return pow(x*x+y*y,0.5)
 
+def save_euclidean(X,number):
+    pos = {}
+    count = 0
+    for i in G.nodes():
+        x,y = X[count]
+        pos[i] = [x,y]
+        count += 1
+    nx.draw(G,pos=pos,with_labels=True)
+    plt.savefig('test'+str(number)+'.png')
+    plt.clf()
 
 def output_euclidean(G,X):
     pos = {}
@@ -210,14 +220,37 @@ def output_euclidean(G,X):
         count += 1
     nx.drawing.nx_agraph.write_dot(G, "output.dot")
 
+def set_w(d,k):
+    k_nearest = [get_k_nearest(d[i],k) for i in range(len(d))]
+
+    #1/(10*math.exp(d[i][j]))
+    w = np.asarray([[ 0.001 if i != j else 0 for i in range(len(d))] for j in range(len(d))])
+    for i in range(len(d)):
+        for j in k_nearest[i]:
+            if i != j:
+                w[i][j] = 1
+
+
+    return w
+def get_k_nearest(d_row,k):
+    return np.argpartition(d_row,k)[:k+1]
+
 #Code start
 
-G = nx.triangular_lattice_graph(5,5)
+#G = nx.grid_graph([10,5])
+G = nx.random_partition_graph([30,10,40,5], 0.8, 0.01)
+#print(G.nodes[40])
 #G = nx.drawing.nx_agraph.read_dot('input.dot')
 #G = nx.full_rary_tree(2,100)
+#G = nx.random_tree(500)
+#g = ig.Graph.Tree(500,2)
+#g.write_dot('input.dot')
+#G = generate_graph(100,0.5)
+
+#G = nx.drawing.nx_agraph.read_dot('input.dot')
 d = np.array(all_pairs_shortest_path(G))/1
 
-Y = myMDS(d)
-#Y.solve(15,debug=False)
-#print(Y.calc_distortion())
-#output_euclidean(G,Y.X)
+Y = myMDS(d,weighted=True,k=5)
+Y.solve(30,debug=False)
+
+output_euclidean(G,Y.X)

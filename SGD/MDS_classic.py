@@ -3,12 +3,10 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import networkx as nx
 import numpy as np
-import igraph as ig
 import matplotlib.pyplot as plt
 #import tensorflow as tf
-import drawSvg as draw
-from math import sqrt
 
+from numba import jit
 
 import math
 import random
@@ -16,6 +14,92 @@ import cmath
 import copy
 import time
 import os
+
+@jit(nopython=True)
+def geodesic(u,v):
+    r1,theta1 = u
+    r2,theta2 = v
+    return np.arccosh(np.cosh(r1)*np.cosh(r2)-np.sinh(r1)*np.sinh(r2)*np.cos(theta2-theta1))
+
+@jit(nopython=True)
+def part_of_dist_hyper(xi,xj):
+    r,t = xi
+    a,b = xj
+    sinh = np.sinh
+    cosh = np.cosh
+    #print(np.cosh(y1)*np.cosh(x2-x1)*np.cosh(y2)-np.sinh(y1)*np.sinh(y2))
+    return np.cos(b-t)*sinh(a)*sinh(r)-cosh(a)*cosh(r)
+
+@jit(nopython=True)
+def grad_dist(p,q):
+    r,t = p
+    a,b = q
+    sin = np.sin
+    cos = np.cos
+    sinh = np.sinh
+    cosh = np.cosh
+    bottom = 1/pow(pow(part_of_dist_hyper(p,q),2)-1,0.5)
+
+    #delta_a = -(cos(b-t)*sinh(r)*cosh(a)-sinh(a)*cosh(r))*bottom
+    #delta_b = (sin(b-t)*sinh(a)*sinh(r))*bottom
+
+    delta_r = -1*(cos(b-t)*sinh(a)*cosh(r)-sinh(r)*cosh(a))*bottom
+    delta_t = -1*(sin(b-t)*sinh(a)*sinh(r))*bottom
+
+    return np.array([delta_r,delta_t])
+
+@jit(nopython=True)
+def step_func(count):
+    return 1/(5+count)
+
+@jit(nopython=True)
+def calc_stress(X,d,w):
+    """
+    Calculates the standard measure of stress: \sum_{i,j} w_{i,j}(dist(Xi,Xj)-D_{i,j})^2
+    Or, in English, the square of the difference of the realized distance and the theoretical distance,
+    weighted by the table w, and summed over all pairs.
+    """
+    stress = 0
+    for i in range(len(X)):
+        for j in range(i):
+            stress += w[i][j]*pow(geodesic(X[i],X[j])-d[i][j],2)
+    return pow(stress,0.5)
+
+@jit(nopython=True)
+def set_step(w_max,eta_max,eta_min):
+    a = 1/w_max
+    b = -np.log(eta_min/eta_max)/(15-1)
+    step = lambda count: a/(pow(1+b*count,0.5))
+    return np.array([step(count) for count in range(15)])
+
+@jit(nopython=True)
+def solve2(X,d,w,num_iter=1000,epsilon=1e-3,debug=False):
+    step = 0.1
+    shuffle = random.shuffle
+    n = len(d)
+    schedule = set_step(1,pow(np.max(d),2),0.1/1)
+
+    for count in range(num_iter):
+
+        gradient = np.zeros(X.shape)
+        for i in range(n):
+            for j in range(n):
+                if i !=j:
+                    gradient[i] += 2*w[i][j]*grad_dist(X[i],X[j])*((geodesic(X[i],X[j])-d[i][j])/2)
+
+        step = 1/(1+count*2)
+        if step > 0.1:
+            step = 0.1
+
+        diff = -step * gradient
+        X += diff
+        if np.all(np.abs(diff) <= epsilon):
+            print("Converged after " + str(count) + " iterations.")
+            break
+        if debug:
+            print(calc_stress(X,d,w))
+    return X
+
 
 class MDS:
     def __init__(self,dissimilarities,geometry='euclidean',init_pos=np.array([])):
@@ -39,8 +123,8 @@ class MDS:
                 self.X[i] = self.init_point()
             self.X = np.asarray(self.X)
 
-        self.w = [[ 1/pow(self.d[i][j],2) if i != j else 0 for i in range(self.n)]
-                    for j in range(self.n)]
+        self.w = np.array([[ 1/pow(self.d[i][j],2) if i != j else 0 for i in range(self.n)]
+                    for j in range(self.n)])
         for i in range(len(self.d)):
             self.w[i][i] = 0
 
@@ -168,13 +252,7 @@ def hyper_grad(p,q):
 
     return np.array([delta_r,delta_t])
 
-def part_of_dist_hyper(xi,xj):
-    r,t = xi
-    a,b = xj
-    sinh = np.sinh
-    cosh = np.cosh
-    #print(np.cosh(y1)*np.cosh(x2-x1)*np.cosh(y2)-np.sinh(y1)*np.sinh(y2))
-    return np.cos(b-t)*sinh(a)*sinh(r)-cosh(a)*cosh(r)
+
 
 def sphere_grad(p,q):
     lamb1,phi1 = p

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import random
 import networkx as nx
 from SGD_hyperbolic import HMDS,all_pairs_shortest_path,output_hyperbolic
-from MDS import MDS
+from SGD_MDS import myMDS
 from nltk.corpus import wordnet as wn
 from scipy.optimize import minimize_scalar
 import igraph as ig
@@ -29,10 +29,11 @@ def run_HMDS():
 
 def scale_test():
     scale = np.array([0.05,0.1,0.15,0.2])
+    avgStress = np.zeros(scale.shape)
 
     n = 50
     p = 0.6
-    trials = {}
+    trials = np.zeros(25)
 
     #G = nx.triangular_lattice_graph(2,2)
     G = nx.full_rary_tree(2,20)
@@ -40,24 +41,23 @@ def scale_test():
 
     S = MDS(d,geometry="hyperbolic")
 
-    for s in scale:
+    for s in range(len(scale)):
         print(s)
-        trials[str(s)] = 0
-        for i in range(25):
-            G = nx.erdos_renyi_graph(30,0.5)
+        for i in range(len(trials)):
+            G = nx.grid_graph([5,5])
             d = np.asarray(all_pairs_shortest_path(G))
-            Z = HMDS(d,epsilon=s)
+            Z = HMDS(d,epsilon=scale[s])
             Z.solve(15)
-            trials[str(s)] += Z.calc_stress()
+            trials[i] = Z.calc_stress()
 
-        trials[str(s)] = trials[str(s)]/25
+        avgStress[s] = trials.mean()
 
 
     with open('data/optimize-eta.csv', 'w', newline='') as csvfile:
         spamwriter = csv.writer(csvfile, delimiter=',',
                                 quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        for s in trials:
-            spamwriter.writerow([str(s)] + [str(trials[str(s)])])
+        for s in range(len(scale)):
+            spamwriter.writerow([str(scale[s])] + [str(avgStress[s])])
 
 def classicTrial(d):
     Y = MDS(d,geometry='hyperbolic')
@@ -88,17 +88,64 @@ def time_test():
     with open('data/time_trials.csv', 'w', newline='') as csvfile:
         spamwriter = csv.writer(csvfile, delimiter=',',
                                 quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        for i in range(len(trials)):
+        for i in range(len()):
             spamwriter.writerow([str(classicTime[i])] + [str(stochasticTime[i])])
+
+def tree_test():
+    ns = [i for i in range(10,100)]
+    trials = 10
+    print(ns[10])
+
+    euclideanTrees = []
+    hyperTrees = []
+
+    for i in range(len(ns)):
+        print(i)
+        average = 0
+        for j in range(trials):
+            G = nx.random_tree(n=ns[i])
+            d = np.asarray(all_pairs_shortest_path(G))/1
+
+            Y = myMDS(d)
+            Y.solve(15)
+            average += Y.calc_distortion()
+        average = average/trials
+        euclideanTrees.append(average)
+
+        average = 0
+        for j in range(trials):
+            G = nx.random_tree(n=ns[i])
+            d = np.asarray(all_pairs_shortest_path(G))/1
+
+            Z = myMDS(d)
+            Z.solve(15)
+            init = np.ones(Z.X.shape)
+            for k in range(len(Z.X)):
+                r = pow(pow(Z.X[k][0],2)+pow(Z.X[k][1],2),0.5)
+                theta = math.atan2(Z.X[k][1],Z.X[k][0])
+                init[k] = np.array([r,theta])
+
+            Y = HMDS(d,init_pos=init)
+            Y.solve(15)
+            average += Y.calc_distortion()
+        average = average/trials
+        hyperTrees.append(average)
+
+    with open('data/time_trials.csv', 'w', newline='') as csvfile:
+        spamwriter = csv.writer(csvfile, delimiter=',',
+                                quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        for i in range(len(ns)):
+            spamwriter.writerow([str(ns[i])] + [str(euclideanTrees[i])] + [str(hyperTrees[i])])
+
 #Z = HMDS(d)
 #Z.solve(1000)
 #print(Z.calc_distortion())
 #output_hyperbolic(Z.X,G)
 #G = nx.drawing.nx_agraph.read_dot('input.dot')
-G = nx.full_rary_tree(2,30)
-d = np.asarray(all_pairs_shortest_path(G))/1
+#G = nx.full_rary_tree(2,30)
+#d = np.asarray(all_pairs_shortest_path(G))/1
 
-run_HMDS()
+#run_HMDS()
 #time_test()
-
+tree_test()
 #scale_test()
