@@ -21,6 +21,8 @@ def satisfy(u,v,d,w,step):
     w: associated weight of the pair u,v
     step: Fraction of distance u and v should be moved along gradient
     Returns: updated hyperbolic vectors of u and v
+
+    Code modified from https://github.com/jxz12/s_gd2 and associated paper.
     """
     pq = u-v
     mag = geodesic(u,v)
@@ -364,7 +366,8 @@ def Draw_SVG(X,number):
     d.setRenderSize(w=1000)
     d.saveSvg('SGD/slideshow/Test' + str(number) + '.svg')
 
-def output_hyperbolic(X,G,count1):
+def output_hyperbolic(X,G):
+    import networkx as nx
     count = 0
     for i in G.nodes():
         x,y = X[count]

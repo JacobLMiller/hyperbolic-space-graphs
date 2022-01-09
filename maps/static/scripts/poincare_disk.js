@@ -24,20 +24,31 @@ let K0 = 20;
 let ANIMATION_SPEED = 1;
 let ITERATIONS = 1000000;
 
-var find_max_delta = function(){
-  max_delta = ['dummy',0];
-  deltas = 0
-  for (m in G.nodeList){
-    H = tau(G,m);
-
-    partialDerivative = dEdP(H,m);
-    deltas = math.sqrt(partialDerivative[0]*partialDerivative[0] + partialDerivative[1]*partialDerivative[1]);
-
-    if (max_delta[1] < deltas){
-      max_delta = [m,deltas];
-    }
+let compare = function(a,b){
+  if (a.delta < b.delta){
+    return -1
   }
-  return max_delta
+  if (a.delta > b.delta){
+    return 1
+  }
+  return 0
+}
+
+let calc_delta = function(m){
+  H = tau(G,m);
+
+  let partialDerivative = dEdP(H,m);
+  return math.sqrt(partialDerivative[0]*partialDerivative[0] + partialDerivative[1]*partialDerivative[1]);
+}
+
+var find_max_delta = function(){
+  let all_deltas = [];
+  let deltas = 0
+  for (m in G.nodeList){
+    all_deltas.push({"index": m, "delta": calc_delta(m)})
+  }
+  all_deltas.sort(compare)
+  return all_deltas
 }
 
 var generate_N_polygon = function(n){
@@ -238,10 +249,10 @@ var inverseTau = function(z,z0alt){
 
 }
 
-var KK_Step = function(nodes,destinationList,current_max_delta){
+var KK_Step = function(nodes,destinationList,m){
   count = 0;
-  j = current_max_delta[0]
-    //console.log(j)
+  j = m.index
+  //for (let j = 0; j < G.nodeList.length; j ++ ){
     z0alt = math.complex(G.nodeList[j].hPos.getX(),G.nodeList[j].hPos.getY());
 
     H = tau(G,j)
@@ -250,7 +261,6 @@ var KK_Step = function(nodes,destinationList,current_max_delta){
 
     x = deltaP._data[0];
     y = deltaP._data[1];
-
     z = math.complex(x[0], y[0]);
 
     //console.log(z0alt)
@@ -259,8 +269,10 @@ var KK_Step = function(nodes,destinationList,current_max_delta){
     if(destinationList[j].getEuclideanRadius() >= .999){
       destinationList[j] = HyperbolicCanvas.Point.givenEuclideanPolarCoordinates(.9,destinationList[count].getAngle());
     }
-    count += 1
+    //count += 1
     G.nodeList[j].hPos = destinationList[j];
+
+  //}
 }
 
 function toCounterClockwise(polygon) {
@@ -478,11 +490,6 @@ var mobius = function(z,transform){
   );
 }
 
-var parse_pos = function(strPos){
-  Coords = strPos.split(',');
-  return([parseFloat(Coords[0]),parseFloat(Coords[1])]);
-}
-
 
 
 class Node {
@@ -644,6 +651,8 @@ var makeGraph = function(V,E){
 
 }
 
+
+
 let random_circle_coordinates = function() {
   let x = Math.random();
   let y = Math.random();
@@ -706,6 +715,7 @@ let random_circle_coordinates = function() {
 
     //originTrans = [allX/count,allY/count];
 
+    let start = performance.now();
     G = makeGraph(V,E);
     //console.log(t);
 
@@ -720,6 +730,14 @@ let random_circle_coordinates = function() {
       console.log(G.nodeList[i].hPos)
     }
 
+    let choose = function(n, k){
+      let product = 1
+      for (i=1; i < k+1; i++){
+        product = product * (n-(k-1))/i
+      }
+      return product
+    }
+
     D = all_pairs_shortest_path(V);
     L = compute_l_table(D);
     K = compute_k(D);
@@ -727,8 +745,47 @@ let random_circle_coordinates = function() {
     console.log(L)
     console.log(K)
 
-    current_max_delta = find_max_delta();
 
+    let deltas = find_max_delta();
+
+    while(myCount < 2000 && keepGoing) {
+
+        m = deltas.pop()
+        KK_Step(G.nodeList,destinationList, m);
+        newM = {"index": m.index, "delta": calc_delta(m.index)}
+        deltas.unshift(newM)
+
+
+      epsilon = m.delta - newM.delta;
+      if(math.abs(epsilon) < 0.0001 || math.abs(newM.delta) < 0.001){
+
+        keepGoing = false
+      }
+      if(myCount % 1 === 0){
+        deltas.sort(compare)
+      }
+      myCount += 1
+    }
+    console.log("Embedding complete")
+    let end = performance.now();
+    let time = (end-start)/1000;
+    let distortion = 0;
+    for (i=0; i< G.nodeList.length; i ++){
+      for (let j = 0; j < i; j ++){
+        let dist = G.nodeList[i].hPos.hyperbolicDistanceTo(G.nodeList[j].hPos);
+        distortion = distortion + math.abs(dist-D[i][j])/D[i][j]
+      }
+    }
+    distortion = (1/choose(G.nodeList.length,2))*distortion
+    console.log(distortion)
+
+    var xmlHttp = new XMLHttpRequest();
+     xmlHttp.open( "GET", "http://localhost:5000/loadTime/" + JSON.stringify(time) , true ); // false for synchronous request
+     xmlHttp.send(null);
+
+    var xmlHttp = new XMLHttpRequest();
+     xmlHttp.open( "GET", "http://localhost:5000/loadError/" + JSON.stringify(distortion) , true ); // false for synchronous request
+     xmlHttp.send(null);
     //KK_Step(G.nodeList,destinationList);
 
     var ctx = canvas.getContext();
@@ -811,46 +868,12 @@ let random_circle_coordinates = function() {
       }*/
 
       totalCount += 1
-      if (totalCount % ANIMATION_SPEED === 0 && myCount < ITERATIONS && keepGoing) {
-        KK_Step(G.nodeList,destinationList,current_max_delta);
 
-        //changeCenter(G.nodeList[0].hPos)
-        new_delta = find_max_delta()
-        epsilon = current_max_delta[1] - new_delta[1];
-        if(math.abs(epsilon) < 0.001 || math.abs(new_delta[1]) < .001){
-          bigCount += 1
-        }else{
-          bigCount = 0
-        }
-        if (bigCount > 10){
-          keepGoing = false;
-          console.log("Embedding complete")
-          let distortion = 0;
-          for (i=0; i< G.nodeList.length; i ++){
-            for (let j = 0; j < i; j ++){
-              let dist = G.nodeList[i].hPos.hyperbolicDistanceTo(G.nodeList[j].hPos);
-              distortion = distortion + math.abs(dist-D[i][j])/D[i][j]
-            }
-          }
-          distortion = (1/choose(G.nodeList.length,2))*distortion
-          console.log(distortion)
-        }
-        current_max_delta = new_delta
-        totalCount = 0
-        myCount += 1
-      }
 
 
       requestAnimationFrame(render);
     };
 
-    let choose = function(n, k){
-      let product = 1
-      for (i=1; i < k+1; i++){
-        product = product * (n-(k-1))/i
-      }
-      return product
-    }
 
     var resetLocation = function (event) {
       if (event) {

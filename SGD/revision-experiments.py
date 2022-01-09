@@ -72,27 +72,37 @@ def read_sgd_txt(file):
 
 
 def testing():
-    G = gt.load_graph_from_csv('graphs/data/lesmis.txt', csv_options={'delimiter': ' ', 'quotechar': '"'})
-    print(G.num_vertices())
+    # G = gt.load_graph_from_csv('graphs/data/lesmis.txt', csv_options={'delimiter': ' ', 'quotechar': '"'})
+    # print(G.num_vertices())
+    # d = distance_matrix.get_distance_matrix(G,distance_metric='spdm',verbose=False,normalize=False)
+    # Y = MDS(d,geometry='hyperbolic')
+    # Y.solve(100,debug=True)
+    # print(Y.calc_distortion())
+
+    G = gt.load_graph('SGD/graphs/colors.dot')
     d = distance_matrix.get_distance_matrix(G,distance_metric='spdm',verbose=False,normalize=False)
-    Y = MDS(d,geometry='hyperbolic')
-    Y.solve(100,debug=True)
-    print(Y.calc_distortion())
+    Y = HMDS(d)
+    Y.solve()
+    import networkx as nx
+    G = nx.drawing.nx_agraph.read_dot('SGD/graphs/colors.dot')
+    from modHMDS import output_hyperbolic
+    output_hyperbolic(Y.X,G)
 
 
 def revision_exp3():
     Graphs = [gt.load_graph('graphs/colors.dot'),
               gt.load_graph('graphs/music.dot'),
-              gt.load_graph('graphs/btree5.dot'),
+              gt.load_graph('graphs/btree8.dot'),
               gt.load_graph('graphs/1138_bus.dot')]
 
     data_error = [[] for g in Graphs]
     data_time = [[] for g in Graphs]
     data = [[] for g in Graphs]
     for g in range(len(Graphs)):
-        d = distance_matrix.get_distance_matrix(Graphs[g],distance_metric='spdm',verbose=False,normalize=False)
+
         for i in range(10):
             start = time.perf_counter()
+            d = distance_matrix.get_distance_matrix(Graphs[g],distance_metric='spdm',verbose=False,normalize=False)
             Y = HMDS(d)
             Y.solve()
             end = time.perf_counter()
@@ -106,4 +116,11 @@ def revision_exp3():
     import pickle
     with open('data/revision_exp3_sgd.pkl', 'wb') as myfile:
         pickle.dump(data, myfile)
-revision_exp3()
+
+
+def read_data():
+    import pickle
+    with open("data/exp3/revision_exp3_sgd.pkl",'r') as myfile:
+        sgd = myfile.load()
+
+testing()

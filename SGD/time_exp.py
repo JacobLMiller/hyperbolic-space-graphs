@@ -56,8 +56,8 @@ def conduct_exp():
     csvfile.close()
 
 
-G = gt.lattice([10,5])
+G = gt.lattice([20,20])
 
 d = distance_matrix.get_distance_matrix(G,'spdm',normalize=False)
 classic(d)
-conduct_exp()
+#conduct_exp()
