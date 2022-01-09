@@ -43,8 +43,8 @@ def conduct_exp():
 
         d = distance_matrix.get_distance_matrix(G,'spdm',normalize=False)
 
-        stochtime.append(timing(stochastic,1,d))
-        classictime.append(timing(classic,1,d))
+        stochtime.append(timing(stochastic,3,d))
+        classictime.append(timing(classic,3,d))
         print()
 
     import csv

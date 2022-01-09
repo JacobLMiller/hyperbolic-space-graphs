@@ -72,6 +72,8 @@ def calc_distortion(X,d,w):
 def stoch_solver(X,d,w,indices,schedule,num_iter=15,epsilon=1e-3,debug=False):
     step = 0.1
     shuffle = random.shuffle
+    if debug:
+        stress_hist = []
 
     for count in range(num_iter):
         for i,j in indices:
@@ -80,7 +82,7 @@ def stoch_solver(X,d,w,indices,schedule,num_iter=15,epsilon=1e-3,debug=False):
         step = schedule[count] if count <= len(schedule) else schedule[-1]
         shuffle(indices)
         if debug:
-            print(calc_distortion(X,d,w))
+            stress_hist.append(calc_stress(X,d,w))
     return X
 
 @jit(nopython=True)

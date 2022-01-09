@@ -78,6 +78,8 @@ def solve2(X,d,w,num_iter=1000,epsilon=1e-3,debug=False):
     shuffle = random.shuffle
     n = len(d)
     schedule = set_step(1,pow(np.max(d),2),0.1/1)
+    if debug:
+        stress_hist = []
 
     for count in range(num_iter):
 
@@ -97,7 +99,7 @@ def solve2(X,d,w,num_iter=1000,epsilon=1e-3,debug=False):
             print("Converged after " + str(count) + " iterations.")
             break
         if debug:
-            print(calc_stress(X,d,w))
+            stress_hist.append(calc_stress(X,d,w))
     return X
 
 

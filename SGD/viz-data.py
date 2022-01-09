@@ -36,13 +36,13 @@ def plot_exp_1():
     classic_hist = np.zeros(len(final[2]['stress_hist_classic'][0]))
     for i in range(len(final[2]['stress_hist_classic'])):
         for j in range(len(classic_hist)):
-            classic_hist[j] += final[2]['stress_hist_classic'][i][j]
+            classic_hist[j] += final[3]['stress_hist_classic'][i][j]
     classic_hist /= 5
 
     stochastic_hist = np.zeros(len(stochdata[2]['stress_hist_stochastic'][0]))
     for i in range(len(stochdata[2]['stress_hist_stochastic'])):
         for j in range(len(stochastic_hist)):
-            stochastic_hist[j] += stochdata[2]['stress_hist_stochastic'][i][j]
+            stochastic_hist[j] += stochdata[3]['stress_hist_stochastic'][i][j]
     stochastic_hist /= len(stochdata[2]['stress_hist_stochastic'])
 
     #classic_hist = final[0]['stress_hist_classic'][0]
@@ -50,7 +50,7 @@ def plot_exp_1():
 
     x1 = 1+np.arange(len(classic_hist))
     x2 = 1+np.arange(len(stochastic_hist))
-    print(stochastic_hist)
+    print(classic_hist)
 
     plt.plot(x1, classic_hist, label="Classic Average")
     plt.plot(x2, stochastic_hist,label="Stocastic Average")
@@ -60,7 +60,7 @@ def plot_exp_1():
     plt.ylabel("Stress")
     plt.xlim()
     #plt.yscale('log')
-    #plt.ylim(0,1)
+    #plt.ylim(100,600)
     plt.suptitle("Stress curves on 1138bus")
     plt.legend()
 
@@ -129,4 +129,25 @@ def plot_exp_2():
         else:
         	print('Different distributions (reject H0)')
 
-plot_exp_2()
+
+def plot_time():
+    import csv
+    with open('data/time_exp1.csv', newline='') as csvfile:
+        spamwriter = csv.reader(csvfile, delimiter=',', quotechar='|')
+        sgd,classic = list(spamwriter)
+    csvfile.close()
+    sgd = np.array(sgd).astype(float)
+    classic = np.array(classic).astype(float)
+
+    x = [i for i in range(20,501,20)]
+    print(classic)
+
+    plt.plot(x,sgd,label='SGD time (seconds)')
+    plt.plot(x,classic,label='GD time (seconds)')
+    plt.xlabel('|V| (|E| = 4|V|)')
+    plt.ylabel('Time (seconds)')
+    plt.legend()
+    plt.show()
+
+
+plot_exp_1()

@@ -2,8 +2,8 @@ import numpy as np
 import graph_tool.all as gt
 import pickle
 import networkx as nx
-from MDS_classic import MDS
 from modHMDS import HMDS
+from MDS_classic import MDS,solve2
 import modules.graph_io as graph_io
 import modules.distance_matrix as distance_matrix
 import time
@@ -35,23 +35,23 @@ def classic_exp():
             'info' : (g,d)
         }
 
-        for j in range(5):
+        for j in range(30):
             print("Iteration number: ", j)
-            # print("Classic")
-            # print()
-            # Y = MDS(d,geometry='euclidean')
-            # Y.solve(100,debug=True)
+            print("Classic")
+            print()
+            Y = MDS(d,geometry='hyperbolic')
+            solve2(Y.X,Y.d,Y.w,debug=True)
 
             print("Stochastic")
             print()
-            Y = myMDS(d)
-            Y.solve(3)
+            #Y = myMDS(d)
+            #Y.solve(3)
             Z = HMDS(d,init_pos=Y.X)
             Z.solve(debug=True)
 
-            #scores[i]['stress_hist_classic'].append(Y.stress_hist)
+            scores[i]['stress_hist_classic'].append(Y.stress_hist)
             scores[i]['stress_hist_stochastic'].append(Z.stress_hist)
-            #scores[i]['classic_layout'].append(Y.X)
+            scores[i]['classic_layout'].append(Y.X)
             scores[i]['stochastic_layout'].append(Z.X)
 
 
@@ -120,7 +120,13 @@ def revision_exp3():
 
 def read_data():
     import pickle
-    with open("data/exp3/revision_exp3_sgd.pkl",'r') as myfile:
-        sgd = myfile.load()
+    with open("data/exp3/projection_error_colors.pkl",'rb') as myfile:
+        time = pickle.load(myfile)
+    data = np.array(time)
+    print(data.mean())
 
-testing()
+
+
+
+
+read_data()
