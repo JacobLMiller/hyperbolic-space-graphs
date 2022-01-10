@@ -32,8 +32,8 @@ def satisfy(u,v,d,w,step):
     r = (mag-d)/2
 
     wc = w*step
-    if wc > 0.5:
-        wc = 0.5
+    if wc > 1:
+        wc = 1
     r = wc*r
     m = pq*r /mag
 
@@ -87,20 +87,21 @@ def stoch_solver(X,d,w,indices,schedule,num_iter=15,epsilon=1e-3):
             step = 0.1
 
 
+
     return X
 
 @jit(nopython=True)
 def stoch_solver_debug(X,d,w,indices,schedule,num_iter=15,epsilon=1e-3):
-    step = 0.1
+    step = 1
     shuffle = random.shuffle
+    print(schedule)
     yield X.copy()
     for count in range(num_iter):
         for i,j in indices: # Random pair
             X[i],X[j] = satisfy(X[i],X[j],d[i][j],w[i][j],step) #Gradient w.r.t. pair i and j
 
-        step = schedule[count] if count <= len(schedule) else schedule[-1] #Get next step size
-        if step > 0.1:
-            step = 0.1
+        step = schedule[count] if count <= len(schedule) else schedule[-1]/10 #Get next step size
+
         shuffle(indices) #Shuffle pair order
         print(calc_stress(X,d,w))
         yield X.copy()
@@ -126,7 +127,7 @@ class HMDS:
         self.d_min = 1
         self.n = len(self.d)
         if self.n > 30:
-            self.d = self.d*(10/self.d_max)
+            self.d = self.d*(4/self.d_max)
         if init_pos.any(): #If an initial configuration is desired, assign it
             self.X = np.asarray(init_pos)
             if self.X.shape[0] != self.n:

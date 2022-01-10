@@ -25,7 +25,7 @@ def dist(X,d):
     return stress/choose(len(X),2)
 
 def plot_exp_1():
-    with open('data/revision_exp1_2.pkl', 'rb') as myfile:
+    with open('SGD/data/revision_exp1_2.pkl', 'rb') as myfile:
         final = pickle.load(myfile)
     myfile.close()
 
@@ -33,15 +33,18 @@ def plot_exp_1():
     classic_hist = np.zeros(len(final[0]['stress_hist_classic'][0]))
     for i in range(len(final[0]['stress_hist_classic'])):
         for j in range(len(classic_hist)):
-            classic_hist[j] += final[0]['stress_hist_classic'][i][j]
+            classic_hist[j] += final[3]['stress_hist_classic'][i][j]
             print(final[0]['stress_hist_classic'][i][j])
-    classic_hist = np.array(classic_hist)/j
+    classic_hist = np.array(classic_hist)/i
 
     stochastic_hist = np.zeros(len(final[0]['stress_hist_stochastic'][0]))
+    stoch_temp = [[] for k in range(1,len(stochastic_hist))]
     for i in range(len(final[0]['stress_hist_stochastic'])):
-        for j in range(len(stochastic_hist)):
-            stochastic_hist[j] += final[0]['stress_hist_stochastic'][i][j]
-    stochastic_hist = np.array(stochastic_hist)/j
+        for j in range(1,len(stochastic_hist)):
+            stoch_temp[j-1].append(final[3]['stress_hist_stochastic'][i][j])
+    #stochastic_hist = np.array(stochastic_hist)/i
+    stoch_temp = [np.array(x) for x in stoch_temp]
+    stochastic_hist = [np.nanmean(x) for x in stoch_temp]
 
     #classic_hist = final[0]['stress_hist_classic'][0]
     #stochastic_hist = final[0]['stress_hist_stochastic'][0]
@@ -50,8 +53,13 @@ def plot_exp_1():
     x2 = 1+np.arange(len(stochastic_hist))
     print(stochastic_hist)
 
-    plt.plot(x1, classic_hist, label="Classic Average")
-    plt.plot(x2, stochastic_hist,label="Stocastic Average")
+    from brokenaxes import brokenaxes
+    baxes = brokenaxes(xlims=((0,100),(480,500)),  hspace=.05)
+
+    baxes.plot(x1, classic_hist, label="Classic Average")
+    baxes.plot(x2, stochastic_hist,label="Stocastic Average")
+
+    baxes.legend(loc="best")
 
     #plt.plot(x, hyper_distortion, label = "Hyperbolic Distortion")
     plt.xlabel("Iteration")
@@ -59,13 +67,13 @@ def plot_exp_1():
     plt.xlim()
     #plt.yscale('log')
     #plt.ylim(100,600)
-    plt.suptitle("Stress curves on 1138bus")
+    plt.suptitle("Stress curves on qh882")
     plt.legend()
 
     #G = [nx.grid_graph([5,5]),nx.random_tree(50),get_hyperbolic_graph(50),nx.ladder_graph(25),nx.drawing.nx_agraph.read_dot('input.dot')]
 
     plt.show()
-    #plt.savefig("figs/updated_sphereveuclid.png")
+    #plt.savefig("figs/qh882_curve.eps")
 
 
 def plot_exp_2():
@@ -157,4 +165,4 @@ def plot_time():
     plt.savefig("Runtime.eps")
 
 
-plot_time()
+plot_exp_1()

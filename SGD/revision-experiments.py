@@ -187,8 +187,30 @@ def read_data():
 
 
 
-classic_exp()
-# G = gt.load_graph_from_csv('graphs/data/1138_bus.txt', csv_options={'delimiter': ' ', 'quotechar': '"'})
-# d = distance_matrix.get_distance_matrix(G,distance_metric='spdm',verbose=False,normalize=False)
-# Z = HMDS(d)
-# Z.solve(100,debug=True)
+#classic_exp()
+#G = gt.load_graph_from_csv('SGD/graphs/data/qh882.txt', csv_options={'delimiter': ' ', 'quotechar': '"'})
+G = gt.load_graph('SGD/graphs/small_block.dot')
+d = distance_matrix.get_distance_matrix(G,distance_metric='spdm',verbose=False,normalize=False)
+Z = HMDS(d)
+Z.solve(100,debug=True)
+
+X = np.zeros(Z.X.shape)
+count = 0
+import math
+for x,y in Z.X:
+    Rh = x
+    theta = y
+    Rh = np.arccosh(np.cosh(x)*np.cosh(y))
+    theta = 2*math.atan2(np.sinh(x)*np.cosh(y)+pow(pow(np.cosh(x),2)*pow(np.cosh(y),2)-1,0.5),np.sinh(y))
+    Re = (math.exp(Rh)-1)/(math.exp(Rh)+1)
+    #hR = math.acosh((r*r/2)+1)
+    X[count] = np.array([Rh,theta])
+    count += 1
+
+
+pos = G.new_vp('vector<float>')
+pos.set_2d_array(X.T)
+G.vertex_properties['mypos'] = pos
+G.save('test.dot')
+G.save("/home/jacob/Desktop/hyperbolic-space-graphs/old/jsCanvas/graphs/hyperbolic_colors.dot")
+G.save("/home/jacob/Desktop/hyperbolic-space-graphs/maps/static/graphs/hyperbolic_colors.dot")
