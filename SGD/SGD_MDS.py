@@ -1,14 +1,13 @@
 import networkx as nx
 import numpy as np
-import igraph as ig
+
 import matplotlib.pyplot as plt
 #import tensorflow as tf
-import drawSvg as draw
+
 from math import sqrt
 import sys
 import itertools
 
-from euclid_random_graph import generate_graph
 
 
 import math
@@ -238,19 +237,19 @@ def get_k_nearest(d_row,k):
 #Code start
 
 #G = nx.grid_graph([10,5])
-G = nx.random_partition_graph([30,10,40,5], 0.8, 0.01)
-#print(G.nodes[40])
-#G = nx.drawing.nx_agraph.read_dot('input.dot')
-#G = nx.full_rary_tree(2,100)
-#G = nx.random_tree(500)
-#g = ig.Graph.Tree(500,2)
-#g.write_dot('input.dot')
-#G = generate_graph(100,0.5)
-
-#G = nx.drawing.nx_agraph.read_dot('input.dot')
-d = np.array(all_pairs_shortest_path(G))/1
-
-Y = myMDS(d,weighted=True,k=5)
-Y.solve(30,debug=False)
-
-output_euclidean(G,Y.X)
+# G = nx.random_partition_graph([30,10,40,5], 0.8, 0.01)
+# #print(G.nodes[40])
+# #G = nx.drawing.nx_agraph.read_dot('input.dot')
+# #G = nx.full_rary_tree(2,100)
+# #G = nx.random_tree(500)
+# #g = ig.Graph.Tree(500,2)
+# #g.write_dot('input.dot')
+# #G = generate_graph(100,0.5)
+#
+# #G = nx.drawing.nx_agraph.read_dot('input.dot')
+# d = np.array(all_pairs_shortest_path(G))/1
+#
+# Y = myMDS(d,weighted=True,k=5)
+# Y.solve(30,debug=False)
+#
+# output_euclidean(G,Y.X)

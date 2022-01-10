@@ -25,32 +25,30 @@ def dist(X,d):
     return stress/choose(len(X),2)
 
 def plot_exp_1():
-    with open('data/revision_exp1.pkl', 'rb') as myfile:
+    with open('data/revision_exp1_2.pkl', 'rb') as myfile:
         final = pickle.load(myfile)
     myfile.close()
 
-    with open('data/revision_exp2.pkl', 'rb') as myfile:
-        stochdata = pickle.load(myfile)
-    myfile.close()
 
-    classic_hist = np.zeros(len(final[2]['stress_hist_classic'][0]))
-    for i in range(len(final[2]['stress_hist_classic'])):
+    classic_hist = np.zeros(len(final[0]['stress_hist_classic'][0]))
+    for i in range(len(final[0]['stress_hist_classic'])):
         for j in range(len(classic_hist)):
-            classic_hist[j] += final[3]['stress_hist_classic'][i][j]
-    classic_hist /= 5
+            classic_hist[j] += final[0]['stress_hist_classic'][i][j]
+            print(final[0]['stress_hist_classic'][i][j])
+    classic_hist = np.array(classic_hist)/j
 
-    stochastic_hist = np.zeros(len(stochdata[2]['stress_hist_stochastic'][0]))
-    for i in range(len(stochdata[2]['stress_hist_stochastic'])):
+    stochastic_hist = np.zeros(len(final[0]['stress_hist_stochastic'][0]))
+    for i in range(len(final[0]['stress_hist_stochastic'])):
         for j in range(len(stochastic_hist)):
-            stochastic_hist[j] += stochdata[3]['stress_hist_stochastic'][i][j]
-    stochastic_hist /= len(stochdata[2]['stress_hist_stochastic'])
+            stochastic_hist[j] += final[0]['stress_hist_stochastic'][i][j]
+    stochastic_hist = np.array(stochastic_hist)/j
 
     #classic_hist = final[0]['stress_hist_classic'][0]
-    #stochastic_hist = stochdata[0]['stress_hist_stochastic'][0]
+    #stochastic_hist = final[0]['stress_hist_stochastic'][0]
 
     x1 = 1+np.arange(len(classic_hist))
     x2 = 1+np.arange(len(stochastic_hist))
-    print(classic_hist)
+    print(stochastic_hist)
 
     plt.plot(x1, classic_hist, label="Classic Average")
     plt.plot(x2, stochastic_hist,label="Stocastic Average")
@@ -71,33 +69,31 @@ def plot_exp_1():
 
 
 def plot_exp_2():
-        with open('data/revision_exp3.pkl', 'rb') as myfile:
+        with open('data/revision_exp_smart_init.pkl', 'rb') as myfile:
             final = pickle.load(myfile)
         myfile.close()
 
-        with open('data/revision_exp2.pkl', 'rb') as myfile:
-            stochdata = pickle.load(myfile)
-        myfile.close()
+        n = len(final[0]['stress_hist_random'])
 
-        classic_hist = np.zeros(len(final[2]['stress_hist_stochastic'][0]))
-        for i in range(len(final[2]['stress_hist_stochastic'])):
+        classic_hist = np.zeros(len(final[2]['stress_hist_random'][0]))
+        for i in range(n):
             for j in range(len(classic_hist)):
-                classic_hist[j] += final[3]['stress_hist_stochastic'][i][j]
-        classic_hist /= 5
+                classic_hist[j] += final[1]['stress_hist_random'][i][j]
+        classic_hist = np.array(classic_hist)/j
 
-        stochastic_hist = np.zeros(len(stochdata[2]['stress_hist_stochastic'][0]))
-        for i in range(len(stochdata[2]['stress_hist_stochastic'])):
+        stochastic_hist = np.zeros(len(final[2]['stress_hist_smart'][0]))
+        for i in range(n):
             for j in range(len(stochastic_hist)):
-                stochastic_hist[j] += stochdata[3]['stress_hist_stochastic'][i][j]
-        stochastic_hist /= len(stochdata[2]['stress_hist_stochastic'])
-        stochastic_hist = stochastic_hist[:15]
+                stochastic_hist[j] += final[1]['stress_hist_smart'][i][j]
+        stochastic_hist = np.array(stochastic_hist)/j
 
-        #classic_hist = final[0]['stress_hist_classic'][0]
-        #stochastic_hist = stochdata[0]['stress_hist_stochastic'][0]
+
 
         x1 = np.arange(len(classic_hist))
         x2 = np.arange(len(stochastic_hist))
-        print(stochastic_hist)
+        from modHMDS import calc_stress
+        print(final[1]['random_layout'])
+        print(calc_stress(final[1]['random_layout'],final[1]['info'][1],np.ones(final[1]['info'][1].shape)))
 
         plt.plot(x1, classic_hist, label="Smart init")
         plt.plot(x2, stochastic_hist,label="Random Init")
@@ -132,22 +128,33 @@ def plot_exp_2():
 
 def plot_time():
     import csv
-    with open('data/time_exp1.csv', newline='') as csvfile:
+    with open('data/time_exp1_stoch.csv', newline='') as csvfile:
         spamwriter = csv.reader(csvfile, delimiter=',', quotechar='|')
-        sgd,classic = list(spamwriter)
+        sgd = [np.array(row) for row in spamwriter]
     csvfile.close()
+
+    with open('data/time_exp1_classic.csv', newline='') as csvfile:
+        spamwriter = csv.reader(csvfile, delimiter=',', quotechar='|')
+        classic = [np.array(row) for row in spamwriter]
+    csvfile.close()
+
     sgd = np.array(sgd).astype(float)
     classic = np.array(classic).astype(float)
 
-    x = [i for i in range(20,501,20)]
+    sgd = [np.mean(x) for x in sgd]
+    classic = [np.mean(x) for x in classic]
+
+    x1 = [i for i in range(20,501,20)]
+    x2 = x1[:18] + x1[19:]
     print(classic)
 
-    plt.plot(x,sgd,label='SGD time (seconds)')
-    plt.plot(x,classic,label='GD time (seconds)')
-    plt.xlabel('|V| (|E| = 4|V|)')
+    plt.plot(x1,sgd,label='SGD time (seconds)')
+    plt.plot(x2,classic,label='GD time (seconds)')
+    plt.xlabel('|V| (|E| = 3|V|)')
     plt.ylabel('Time (seconds)')
+    plt.suptitle("Hyperbolic GD vs. SGD Average runtime")
     plt.legend()
-    plt.show()
+    plt.savefig("Runtime.eps")
 
 
-plot_exp_1()
+plot_time()

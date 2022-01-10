@@ -5,7 +5,7 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 #import tensorflow as tf
-
+import numba as nb
 from numba import jit
 
 import math
@@ -73,13 +73,11 @@ def set_step(w_max,eta_max,eta_min):
     return np.array([step(count) for count in range(15)])
 
 @jit(nopython=True)
-def solve2(X,d,w,num_iter=1000,epsilon=1e-3,debug=False):
+def classic_solver(X,d,w,num_iter=1000,epsilon=1e-3,debug=False):
     step = 0.1
     shuffle = random.shuffle
     n = len(d)
     schedule = set_step(1,pow(np.max(d),2),0.1/1)
-    if debug:
-        stress_hist = []
 
     for count in range(num_iter):
 
@@ -98,8 +96,36 @@ def solve2(X,d,w,num_iter=1000,epsilon=1e-3,debug=False):
         if np.all(np.abs(diff) <= epsilon):
             print("Converged after " + str(count) + " iterations.")
             break
-        if debug:
-            stress_hist.append(calc_stress(X,d,w))
+
+    return X
+
+@jit(nopython=True)
+def classic_solver_debug(X,d,w,num_iter=1000,epsilon=1e-3,debug=False):
+    step = 0.1
+    shuffle = random.shuffle
+    n = len(d)
+    schedule = set_step(1,pow(np.max(d),2),0.1/1)
+
+    for count in range(num_iter):
+
+        gradient = np.zeros(X.shape)
+        for i in range(n):
+            for j in range(n):
+                if i !=j:
+                    gradient[i] += 2*w[i][j]*grad_dist(X[i],X[j])*((geodesic(X[i],X[j])-d[i][j])/2)
+
+        step = 1/(1+count*2)
+        if step > 0.001:
+            step = 0.001
+
+        diff = -step * gradient
+        X += diff
+        print(calc_stress(X,d,w))
+        yield X.copy()
+        # if np.all(np.abs(diff) <= epsilon):
+        #     print("Converged after " + str(count) + " iterations.")
+        #     break
+
     return X
 
 
@@ -136,42 +162,20 @@ class MDS:
         epsilon = 0.1
         self.eta_min = epsilon/w_max
 
-    def solve(self,num_iter=100,epsilon=1e-3,debug=True):
-        current_error,error,step,count = 1000,1,0.01,0
-        prev_error = 1000000
+    def solve(self,num_iter=1000,epsilon=1e-3,debug=False):
+        X = self.X
+        d = self.d
+        w = self.w
+        if debug:
+            solve_step = classic_solver_debug(X,d,w,num_iter)
+            #print(next(solve_step))
+            Xs = [x for x in solve_step]
+            self.stress_hist = [calc_stress(x,d,w) for x in Xs]
+            self.X =  Xs[-1]
+            return
 
-        indices = [i for i in range(self.n)]
-        random.shuffle(indices)
-        X = np.asarray(self.X)
-        self.stress_hist = []
-
-        while count < num_iter:
-            #print('Epoch: {0}.'.format(count), end='\r')
-            # Do all calculations under a "GradientTape" which tracks all gradients
-            loss = np.zeros(X.shape)
-            for i in range(len(X)):
-                for j in range(len(X)):
-                    if i != j:
-                        dist = self.geodesic(X[i],X[j])
-                        loss[i] += 2*self.w[i][j]*self.grad(X[i],X[j])*((dist-self.d[i][j])/2)
-                        #loss[i] = normalize(loss[i])
-            #print(loss)
-            step = self.compute_step_size(count,num_iter)
-            if step > 1:
-                step = 1
-            step = 0.001
-            X = X - step*loss
-            self.X = X
-            stress = self.calc_stress()
-
-            prev_error = stress
-            if debug:
-                #print(stress)
-                self.stress_hist.append(stress)
-
-            count += 1
+        X = classic_solver(X,d,w,num_iter)
         self.X = X
-        return self.X
 
     def geodesic(self,xi,xj):
         if self.geometry == 'euclidean':

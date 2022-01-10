@@ -11,7 +11,10 @@ from numba import jit
 def geodesic(u,v):
     x1,y1 = u
     x2,y2 = v
-    return np.arccosh(np.cosh(y1)*np.cosh(x2-x1)*np.cosh(y2)-np.sinh(y1)*np.sinh(y2))
+    dist = np.arccosh(np.cosh(y1)*np.cosh(x2-x1)*np.cosh(y2)-np.sinh(y1)*np.sinh(y2))
+    if np.isnan(dist):
+        dist = np.linalg.norm(u-v)
+    return dist
 
 @jit(nopython=True)
 def satisfy(u,v,d,w,step):
@@ -29,8 +32,8 @@ def satisfy(u,v,d,w,step):
     r = (mag-d)/2
 
     wc = w*step
-    if wc > 1:
-        wc = 1
+    if wc > 0.5:
+        wc = 0.5
     r = wc*r
     m = pq*r /mag
 
@@ -69,27 +72,50 @@ def calc_distortion(X,d,w):
     return (1/choose1(len(X),2))*distortion
 
 @jit(nopython=True)
-def stoch_solver(X,d,w,indices,schedule,num_iter=15,epsilon=1e-3,debug=False):
+def stoch_solver(X,d,w,indices,schedule,num_iter=15,epsilon=1e-3):
     step = 0.1
     shuffle = random.shuffle
-    if debug:
-        stress_hist = []
 
     for count in range(num_iter):
-        for i,j in indices:
-            X[i],X[j] = satisfy(X[i],X[j],d[i][j],w[i][j],step)
 
-        step = schedule[count] if count <= len(schedule) else schedule[-1]
-        shuffle(indices)
-        if debug:
-            stress_hist.append(calc_stress(X,d,w))
+        for i,j in indices: # Random pair
+            X[i],X[j] = satisfy(X[i],X[j],d[i][j],w[i][j],step) #Gradient w.r.t. pair i and j
+
+        step = schedule[count] if count <= len(schedule) else schedule[-1] #Get next step size
+        shuffle(indices) #Shuffle pair order
+        if step > 0.1:
+            step = 0.1
+
+
+    return X
+
+@jit(nopython=True)
+def stoch_solver_debug(X,d,w,indices,schedule,num_iter=15,epsilon=1e-3):
+    step = 0.1
+    shuffle = random.shuffle
+    yield X.copy()
+    for count in range(num_iter):
+        for i,j in indices: # Random pair
+            X[i],X[j] = satisfy(X[i],X[j],d[i][j],w[i][j],step) #Gradient w.r.t. pair i and j
+
+        step = schedule[count] if count <= len(schedule) else schedule[-1] #Get next step size
+        if step > 0.1:
+            step = 0.1
+        shuffle(indices) #Shuffle pair order
+        print(calc_stress(X,d,w))
+        yield X.copy()
+
     return X
 
 @jit(nopython=True)
 def set_step(w_max,eta_max,eta_min):
     a = 1/w_max
     b = -np.log(eta_min/eta_max)/(15-1)
-    step = lambda count: a/(pow(1+b*count,0.5))
+    step = lambda count: eta_max*np.exp(-b*count)
+
+    # lamb = np.log(eta_min/eta_max)/(15-1)
+    # step = lambda count: np.exp(lamb*count)
+
     return np.array([step(count) for count in range(15)])
 
 class HMDS:
@@ -127,11 +153,22 @@ class HMDS:
         self.steps = set_step(self.w_max,self.eta_max,self.eta_min)
 
 
-    def solve(self,debug=False):
-        X = stoch_solver(self.X,self.d,self.w,self.indices,self.steps)
+    def solve(self,num_iter=15,debug=False):
+        X = self.X
+        d = self.d
+        w = self.w
+        if debug:
+            solve_step = stoch_solver_debug(X,d,w,self.indices,self.steps,num_iter=num_iter)
+            #print(next(solve_step))
+            Xs = [x for x in solve_step]
+            self.stress_hist = [calc_stress(x,d,w) for x in Xs]
+            self.X =  Xs[-1]
+            return
+
+        X = stoch_solver(self.X,self.d,self.w,self.indices,self.steps,num_iter=num_iter)
         self.X = X
 
-    def calc_stress(self):
+    def calc_stress3(self):
         """
         Calculates the standard measure of stress: \sum_{i,j} w_{i,j}(dist(Xi,Xj)-D_{i,j})^2
         Or, in English, the square of the difference of the realized distance and the theoretical distance,

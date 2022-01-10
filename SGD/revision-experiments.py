@@ -3,7 +3,8 @@ import graph_tool.all as gt
 import pickle
 import networkx as nx
 from modHMDS import HMDS
-from MDS_classic import MDS,solve2
+from MDS_classic import MDS
+from SGD_MDS import myMDS
 import modules.graph_io as graph_io
 import modules.distance_matrix as distance_matrix
 import time
@@ -15,6 +16,7 @@ def classic_exp():
         gt.load_graph_from_csv('graphs/data/1138_bus.txt', csv_options={'delimiter': ' ', 'quotechar': '"'}),
         gt.load_graph_from_csv('graphs/data/dwt_1005.txt', csv_options={'delimiter': ' ', 'quotechar': '"'})
         ]
+    #G = [gt.lattice([3,3])]
 
     scores = [{} for i in G]
 
@@ -35,19 +37,21 @@ def classic_exp():
             'info' : (g,d)
         }
 
-        for j in range(30):
+        for j in range(10):
             print("Iteration number: ", j)
             print("Classic")
             print()
             Y = MDS(d,geometry='hyperbolic')
-            solve2(Y.X,Y.d,Y.w,debug=True)
+            Y.solve(500,debug=True)
+            print(Y.stress_hist[-1])
 
             print("Stochastic")
             print()
             #Y = myMDS(d)
             #Y.solve(3)
             Z = HMDS(d,init_pos=Y.X)
-            Z.solve(debug=True)
+            Z.solve(100,debug=True)
+            print(Z.stress_hist[-1])
 
             scores[i]['stress_hist_classic'].append(Y.stress_hist)
             scores[i]['stress_hist_stochastic'].append(Z.stress_hist)
@@ -55,12 +59,68 @@ def classic_exp():
             scores[i]['stochastic_layout'].append(Z.X)
 
 
-            with open('data/revision_exp3.pkl', 'wb') as myfile:
+            with open('data/revision_exp1_2.pkl', 'wb') as myfile:
                 pickle.dump(scores, myfile)
             myfile.close()
 
         #output_sphere(G,Y.X,'outputs/extend_cube' + str(i) + '.dot')
     with open('data/revision_exp3.pkl', 'wb') as myfile:
+        pickle.dump(scores, myfile)
+
+def random_init_exp():
+    G = [
+        gt.load_graph_from_csv('graphs/data/btree9.txt', csv_options={'delimiter': ' ', 'quotechar': '"'}),
+        gt.load_graph_from_csv('graphs/data/qh882.txt', csv_options={'delimiter': ' ', 'quotechar': '"'}),
+        gt.load_graph_from_csv('graphs/data/1138_bus.txt', csv_options={'delimiter': ' ', 'quotechar': '"'}),
+        gt.load_graph_from_csv('graphs/data/dwt_1005.txt', csv_options={'delimiter': ' ', 'quotechar': '"'})
+        ]
+    #G = [gt.lattice([3,3])]
+
+    scores = [{} for i in G]
+
+    for i in range(len(G)):
+        print(i)
+
+        g = G[i]
+
+        d = distance_matrix.get_distance_matrix(g,distance_metric='spdm',verbose=False,normalize=False)
+        print("Graph number: ", i)
+        print()
+
+        scores[i] = {
+            'stress_hist_random' : [],
+            'stress_hist_smart' : [],
+            'random_layout' : [],
+            'classic_layout' : [],
+            'info' : (g,d)
+        }
+
+        for j in range(10):
+            print("Iteration number: ", j)
+            print("Classic")
+            print()
+            Y = HMDS(d)
+            Y.solve(30,debug=True)
+
+            print("Stochastic")
+            print()
+            X = myMDS(d)
+            X.solve(5)
+            Z = HMDS(d,init_pos=X.X)
+            Z.solve(30,debug=True)
+
+            scores[i]['stress_hist_random'].append(Y.stress_hist)
+            scores[i]['stress_hist_smart'].append(Z.stress_hist)
+            scores[i]['random_layout'].append(Y.X)
+            scores[i]['classic_layout'].append(Z.X)
+
+
+            with open('data/revision_exp_smart_init.pkl', 'wb') as myfile:
+                pickle.dump(scores, myfile)
+            myfile.close()
+
+        #output_sphere(G,Y.X,'outputs/extend_cube' + str(i) + '.dot')
+    with open('data/revision_exp_smart_init.pkl', 'wb') as myfile:
         pickle.dump(scores, myfile)
 
 def read_sgd_txt(file):
@@ -127,6 +187,8 @@ def read_data():
 
 
 
-
-
-read_data()
+classic_exp()
+# G = gt.load_graph_from_csv('graphs/data/1138_bus.txt', csv_options={'delimiter': ' ', 'quotechar': '"'})
+# d = distance_matrix.get_distance_matrix(G,distance_metric='spdm',verbose=False,normalize=False)
+# Z = HMDS(d)
+# Z.solve(100,debug=True)
