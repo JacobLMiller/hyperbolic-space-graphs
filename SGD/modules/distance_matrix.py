@@ -37,7 +37,7 @@ def get_shortest_path_distance_matrix(g, k=10, weights=None):
     # Get the value (usually maxint) that graph_tool uses for distances between
     # unconnected vertices.
     unconnected_dist = get_unconnected_distance()
-    
+
     # Get shortest distances for all pairs of vertices in a NumPy array.
     X = gt.shortest_distance(g, weights=weights).get_2d_array(range(g.num_vertices()))
 
@@ -50,15 +50,15 @@ def get_shortest_path_distance_matrix(g, k=10, weights=None):
     # Set the unconnected distances to k times the maximum of the other
     # distances.
     X[X == unconnected_dist] = k * X_max
-    
+
     return X
 
 
 # Return the distance matrix of g, with the specified metric.
-def get_distance_matrix(g, distance_metric, normalize=True, k=10.0, verbose=True, weights=None):
+def get_distance_matrix(g, distance_metric='shortest_path', normalize=False, k=10.0, verbose=True, weights=None):
     if verbose:
         print('[distance_matrix] Computing distance matrix (metric: {0})'.format(distance_metric))
-    
+
     if distance_metric == 'shortest_path' or distance_metric == 'spdm':
         X = get_shortest_path_distance_matrix(g, weights=weights)
     elif distance_metric == 'modified_adjacency' or distance_metric == 'mam':

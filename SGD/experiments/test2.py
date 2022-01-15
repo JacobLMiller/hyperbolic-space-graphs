@@ -3,11 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 import networkx as nx
-from SGD_hyperbolic import HMDS,all_pairs_shortest_path,output_hyperbolic
+#from SGD_hyperbolic import HMDS,all_pairs_shortest_path,output_hyperbolic
 from MDS import MDS
 from nltk.corpus import wordnet as wn
 from scipy.optimize import minimize_scalar
-import igraph as ig
 import time
 
 def hyperbolic_dist(x1,x2):
@@ -102,9 +101,9 @@ def scale_invariance():
 
 #run_HMDS()
 
-G = nx.drawing.nx_agraph.read_dot('input.dot')
-d = np.asarray(all_pairs_shortest_path(G))/1
-run_HMDS()
+# G = nx.drawing.nx_agraph.read_dot('input.dot')
+# d = np.asarray(all_pairs_shortest_path(G))/1
+# run_HMDS()
 
 def time():
     start_sgd = time.perf_counter()
@@ -121,3 +120,9 @@ def time():
 
     print(end_sgd-start_sgd)
     print(end_gd-start_gd)
+
+
+def foo(x):
+    return x+x
+
+a,b = foo()

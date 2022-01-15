@@ -1,7 +1,7 @@
 from os import getpid, kill, wait
 from signal import SIGINT
 from django.core.management import call_command
-from StringIO import StringIO
+#from StringIO import StringIO
 
 def restart_django():
     pid = getpid()

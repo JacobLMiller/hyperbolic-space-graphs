@@ -189,28 +189,74 @@ def read_data():
 
 #classic_exp()
 #G = gt.load_graph_from_csv('SGD/graphs/data/qh882.txt', csv_options={'delimiter': ' ', 'quotechar': '"'})
-G = gt.load_graph('SGD/graphs/small_block.dot')
+#G = gt.load_graph('SGD/graphs/small_block.dot')
+G = gt.lattice([10,10])
+print(G.num_vertices())
+
+start = time.perf_counter()
 d = distance_matrix.get_distance_matrix(G,distance_metric='spdm',verbose=False,normalize=False)
 Z = HMDS(d)
-Z.solve(100,debug=True)
+Z.solve(25,debug=False)
 
-X = np.zeros(Z.X.shape)
-count = 0
-import math
-for x,y in Z.X:
-    Rh = x
-    theta = y
-    Rh = np.arccosh(np.cosh(x)*np.cosh(y))
-    theta = 2*math.atan2(np.sinh(x)*np.cosh(y)+pow(pow(np.cosh(x),2)*pow(np.cosh(y),2)-1,0.5),np.sinh(y))
-    Re = (math.exp(Rh)-1)/(math.exp(Rh)+1)
-    #hR = math.acosh((r*r/2)+1)
-    X[count] = np.array([Rh,theta])
-    count += 1
-
-
+print((time.perf_counter()-start)/10)
+# X = np.zeros(Z.X.shape)
+# count = 0
+# import math
+# for x,y in Z.X:
+#     Rh = x
+#     theta = y
+#     Rh = np.arccosh(np.cosh(x)*np.cosh(y))
+#     theta = 2*math.atan2(np.sinh(x)*np.cosh(y)+pow(pow(np.cosh(x),2)*pow(np.cosh(y),2)-1,0.5),np.sinh(y))
+#     Re = (math.exp(Rh)-1)/(math.exp(Rh)+1)
+#     #hR = math.acosh((r*r/2)+1)
+#     X[count] = np.array([Rh,theta])
+#     count += 1
+#
+#
 pos = G.new_vp('vector<float>')
-pos.set_2d_array(X.T)
-G.vertex_properties['mypos'] = pos
-G.save('test.dot')
-G.save("/home/jacob/Desktop/hyperbolic-space-graphs/old/jsCanvas/graphs/hyperbolic_colors.dot")
-G.save("/home/jacob/Desktop/hyperbolic-space-graphs/maps/static/graphs/hyperbolic_colors.dot")
+pos.set_2d_array(Z.X.T)
+G.vertex_properties['pos'] = pos
+
+for v in  G.iter_vertices():
+    print(v)
+    print(Z.X[int(v)])
+
+import io
+import tempfile
+
+with tempfile.TemporaryFile() as file:
+    G.save(file,fmt='dot')
+    file.seek(0)
+    dot_rep = file.read()
+print(dot_rep)
+
+def gt_to_json(G,embedding):
+    nodes, edges = G.iter_vertices(),G.iter_edges()
+
+    out = {'nodes': [None for i in range(G.num_vertices())],
+            'edges': [None for i in range(G.num_edges())]
+            }
+    for v in nodes:
+        out['nodes'][int(v)] = {
+            'id': int(v),
+            'pos': list(embedding[int(v)])
+        }
+    count = 0
+    for u,v in edges:
+        ##Implement map or zip or something
+        out['edges'][count] = {
+            's': int(u),
+            't': int(v)
+        }
+        count += 1
+
+    return out
+
+json_rep = gt_to_json(G,Z.X)
+print(json_rep)
+import json
+X = json.dumps(json_rep)
+print(type(X))
+# G.save('test.dot')
+# G.save("/home/jacob/Desktop/hyperbolic-space-graphs/old/jsCanvas/graphs/hyperbolic_colors.dot")
+# G.save("/home/jacob/Desktop/hyperbolic-space-graphs/maps/static/graphs/hyperbolic_colors.dot")

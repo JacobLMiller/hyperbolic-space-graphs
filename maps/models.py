@@ -47,4 +47,6 @@ class Task(models.Model):
         desc += 'Cluster Algorithm: ' + self.cluster_algorithm + '\n'
         desc += 'Color Scheme: ' + self.color_scheme + '\n'
         desc += 'Semantic Zoom: ' + self.semantic_zoom + '\n'
+        desc += 'status: ' + self.status + '\n'
+
         return desc

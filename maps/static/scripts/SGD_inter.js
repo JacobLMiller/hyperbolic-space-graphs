@@ -17,180 +17,25 @@ let myCount = 0;
 let bigCount = 0;
 let keepGoing = true;
 let mapNodes = [];
+
+
+let sinh = Math.sinh
+let cosh = Math.cosh
+let sqrt = Math.sqrt
 //let graphStr = "graphs/hyperbolic_colors.dot"
 
-let L0 = 3;
-let K0 = 20;
-let ANIMATION_SPEED = 1;
-let ITERATIONS = 1000000;
-
-var find_max_delta = function(){
-  max_delta = ['dummy',0];
-  deltas = 0
-  for (m in G.nodeList){
-    H = tau(G,m);
-
-    partialDerivative = dEdP(H,m);
-    deltas = math.sqrt(partialDerivative[0]*partialDerivative[0] + partialDerivative[1]*partialDerivative[1]);
-
-    if (max_delta[1] < deltas){
-      max_delta = [m,deltas];
-    }
+let compare = function(a,b){
+  if (a.delta < b.delta){
+    return -1
   }
-  return max_delta
+  if (a.delta > b.delta){
+    return 1
+  }
+  return 0
 }
 
-var generate_N_polygon = function(n){
-    verticesList = [];
-    theta = (2*3.14)/n
-    R = 1
-    for (i = 0; i<n; i++){
-      verticesList.push([Math.sin(i*theta),math.cos(i*theta)]);
-    }
-    return verticesList
-
-  }
-
-var dEdP = function(H,p){
-  x = 0;
-  y = 0;
-
-  for(i in H){
-    if (i !== p){
-      xDif = H[p][0] - H[i][0];
-      yDif = H[p][1] - H[i][1];
 
 
-      xDif2 = xDif*xDif;
-      yDif2 = yDif*yDif;
-
-
-      denominator = Math.sqrt(xDif2+yDif2);
-
-
-
-      k_mi = K[G.nodeList[p].index][G.nodeList[i].index];
-      l_mi = L[G.nodeList[p].index][G.nodeList[i].index];
-
-      numerator = l_mi*xDif;
-      division = numerator/denominator;
-
-      x += k_mi*(xDif - division);
-
-      numerator = l_mi*yDif;
-      division = numerator/denominator;
-
-      y += k_mi*(yDif - division);
-
-    }
-  }
-  //console.log("dEdP of node " + p.toString())
-  //console.log([x,y])
-  return [x,y];
-}
-
-var dE2 = function(H,p){
-  x = 0;
-  y = 0;
-  xy = 0;
-  yx = 0;
-
-
-  for (i in H){
-    //console.log("i is "+i.toString())
-    //console.log("p is " + p.toString())
-    if (i !== p){
-      xDif = H[p][0] - H[i][0];
-      yDif = H[p][1] - H[i][1];
-
-
-      k_mi = K[G.nodeList[p].index][G.nodeList[i].index];
-      l_mi = L[G.nodeList[p].index][G.nodeList[i].index];
-
-
-      denominator = Math.pow(xDif*xDif + yDif*yDif,1.5);
-
-      numerator = l_mi*(yDif*yDif);
-
-      fraction = numerator/denominator
-      x += k_mi*(1-fraction);
-
-
-      numerator = l_mi*xDif*yDif;
-      fraction = numerator/denominator;
-      xy += k_mi*fraction;
-
-
-      numerator = l_mi*(xDif*xDif);
-      fraction = numerator/denominator;
-      y += k_mi*(1-fraction);
-
-    }
-  }
-  //console.log("dE2 of node " + p.toString())
-  return [[x,xy],[xy,y]];
-}
-
-var compute_delta_x_and_y = function(H,p){
-  //console.log("What is p now " + p.toString())
-  coefficientMatrix = dE2(H,p);
-  answerMatrix = math.multiply(-1,dEdP(H,p));
-
-
-
-  coefficientMatrix = math.matrix(coefficientMatrix);
-  answerMatrix = math.matrix(answerMatrix);
-
-
-
-
-
-
-  //temp = math.inv(coefficientMatrix);
-  return(math.usolve(coefficientMatrix,answerMatrix));
-}
-
-var tau = function(G,p){
-  z0 = math.complex(G.nodeList[p].hPos.getX(),G.nodeList[p].hPos.getY());
-
-  T = {}
-  transform = {
-    a: 1,
-    b: z0.neg(),
-    c: z0.conjugate().neg(),
-    d: 1
-  }
-
-  for (i in G.nodeList) {
-    if(i === p){
-      T[i] = [0,0];
-      continue
-    }
-
-    T[i] = mobius(G.nodeList[i].hPos,transform);
-
-
-    norm = T[i].getEuclideanRadius();
-    angle = T[i].getAngle();
-
-    if (norm >= 1){
-      T[i] = HyperbolicCanvas.Point.givenEuclideanPolarCoordinates(.999,T[i].getAngle());
-      norm = .999
-      continue
-    }
-    term2 = 2*Math.atanh(norm);
-
-    //temp = math.complex(T[i].getX(),T[i].getY());
-    //term1 = math.divide(temp,norm);
-    //temp = math.multiply(term1,term2);
-
-    //T[i] = [temp.re,temp.im];
-    myComplex = math.Complex.fromPolar(term2,angle);
-    T[i] = [myComplex.re,myComplex.im];
-  }
-  //console.log("Tau at node " + p.toString())
-  return T;
-}
 
 var newMobius = function(z,transform){
   numerator = math.multiply(z,transform.a)
@@ -201,66 +46,6 @@ var newMobius = function(z,transform){
 
   fraction = math.divide(numerator,denominator)
   return(fraction)
-}
-
-var inverseTau = function(z,z0alt){
-  //Probably not right
-  norm = z.toPolar().r
-  angle = z.toPolar().phi
-
-  //numerator = 1-(Math.pow(Math.E,norm));
-  //denominator = 1+(Math.pow(Math.E,norm));
-
-  //division = Math.abs(numerator/denominator);
-  division = norm/2;
-  division = Math.tanh(division);
-
-
-  //term1 = math.divide(z,norm);
-  //newZ = math.multiply(term1,division);
-  //newZ = HyperbolicCanvas.Point.givenCoordinates(newZ.re,newZ.im);
-  newZ = math.Complex.fromPolar(division,angle);
-
-  transform = {
-    a: -1,
-    b: z0alt.neg(),
-    c: z0alt.conjugate().neg(),
-    d: -1
-  }
-  answer = newMobius(newZ,transform);
-
-  //answer = mobius(newZ,transform);
-
-
-  newAnswer = HyperbolicCanvas.Point.givenCoordinates(answer.re,answer.im);
-
-  return(newAnswer);
-
-}
-
-var KK_Step = function(nodes,destinationList,current_max_delta){
-  count = 0;
-  j = current_max_delta[0]
-    //console.log(j)
-    z0alt = math.complex(G.nodeList[j].hPos.getX(),G.nodeList[j].hPos.getY());
-
-    H = tau(G,j)
-
-    deltaP = compute_delta_x_and_y(H,j)
-
-    x = deltaP._data[0];
-    y = deltaP._data[1];
-
-    z = math.complex(x[0], y[0]);
-
-    //console.log(z0alt)
-    destinationList[j] = inverseTau(z,z0alt);
-
-    if(destinationList[j].getEuclideanRadius() >= .999){
-      destinationList[j] = HyperbolicCanvas.Point.givenEuclideanPolarCoordinates(.9,destinationList[count].getAngle());
-    }
-    count += 1
-    G.nodeList[j].hPos = destinationList[j];
 }
 
 function toCounterClockwise(polygon) {
@@ -336,111 +121,6 @@ var polygonStrToHyperbolic = function(xStr,yStr){
 
 }
 
-var transformPolygon = function(P,transform,zoom){
-
-
-  vertices = P.getVertices();
-  newVertices = [];
-  for (i in vertices){
-    hR = vertices[i].getHyperbolicRadius()*zoom
-    theta = vertices[i].getAngle()
-    vertices[i] = HyperbolicCanvas.Point.givenHyperbolicPolarCoordinates(hR,theta)
-
-    newVertices.push(mobius(vertices[i],transform));
-  }
-  /*for (i in vertices){
-    p0 = newVertices[i].toPolar();
-    p0 = HyperbolicCanvas.Point.givenEuclideanPolarCoordinates(p0.r,p0.phi);
-    newVertices[i] = p0;
-  }*/
-  return(HyperbolicCanvas.Polygon.givenVertices(newVertices))
-}
-
-var bfs = function(V,start){
-  queue = [start];
-  discovered = [start];
-  distance = new Map();
-  distance.set(start,0);
-
-  while(queue.length > 0){
-    v = queue.pop()
-    //console.log("We are on node " + V[v].labelPos.name);
-
-    for (w in V[v].neighbors){
-      x = V[v].neighbors[w]
-      if(discovered.includes(x)){}
-      else{
-        discovered.push(x);
-        //console.log("we have visited " + x.toString());
-        distance.set(x,distance.get(v)+1);
-        queue.splice(0,0,x);
-      }
-    }
-  }
-
-
-  myList = [];
-  for (node in V){
-    if(distance.get(node)){
-    myList.push(distance.get(node));
-  }else{
-    myList.push(L0);
-  }
-
-  }
-  //console.log(myList);
-  return myList;
-}
-
-var all_pairs_shortest_path = function(V){
-  d = [];
-
-  count = 0;
-  for (node in V){
-    d.push(bfs(V,node));
-    //G.nodeList[node].index = count;
-    count += 1;
-
-  }
-
-  return d;
-}
-
-var compute_l_table = function(D){
-  maximum = 0;
-  for(i=0;i<D.length;i++){
-    for (j=0;j<D[i].length;j++){
-      maximum = Math.max(maximum,D[i][j]);
-    }
-  }
-  L_prime = L0/maximum;
-
-  l = [];
-  for (i = 0; i<D.length;i++){
-    l.push([]);
-    for(j = 0; j<D[i].length; j++){
-      l[i].push(L_prime*D[i][j]);
-    }
-  }
-  console.log(l)
-  return l;
-}
-
-var compute_k = function(D){
-  k = [];
-
-  for (i = 0; i<D.length;i++){
-    k.push([]);
-    for(j = 0; j<D[i].length; j++){
-      if(i !== j){
-        k[i].push(K0/(D[i][j]*D[i][j]));
-      }else{
-        k[i].push(0);
-      }
-    }
-  }
-  return k;
-}
 
 var mobius = function(z,transform){
   z0 = math.Complex.fromPolar(z.getEuclideanRadius(),z.getAngle());
@@ -476,11 +156,6 @@ var mobius = function(z,transform){
     newPoint.r,
     newPoint.phi)
   );
-}
-
-var parse_pos = function(strPos){
-  Coords = strPos.split(',');
-  return([parseFloat(Coords[0]),parseFloat(Coords[1])]);
 }
 
 
@@ -522,75 +197,13 @@ var lambertAzimuthal = function(r,theta){
   return(HyperbolicCanvas.Point.givenHyperbolicPolarCoordinates(hR,theta));
 }
 
-var makeMap = function(t){
-  var regions;
 
-  var color;
-  var polygonsIdx = 0;
-  var colorIdx = 0;
-  var lineIdx = 0;
-  let colors = [];
-  let polygons = [[]];
-  let lines = [[]];
+let lobachev_to_h_polar = function(coords){
+  let x = coords[0];
+  let y = coords[1];
 
-
-  //Parsing code taken from http://gmap.cs.arizona.edu
-  regions = t.children[0].attr_list[0].eq.trim().split(/\s+/);
-  // parse xdot for region info
-  for (var i = 0; i < regions.length; i++) {
-      if (regions[i] == "c") { // following specifies color
-          i += 2;
-          colors[colorIdx] = regions[i];
-
-          if (colors[colorIdx].charAt(0) == '-') { // some color hex's have '-' before
-              colors[colorIdx] = colors[colorIdx].substring(1);
-          }
-          colorIdx++;
-
-      } else if (regions[i] == "P") { // following is a polygon
-          i++;
-          var size = parseInt(regions[i]); // number of points in polygon
-
-          var polygon = regions.slice(i + 1, i + 1 + size * 2);
-
-          polygon = toCounterClockwise(polygon); // this many dimensions for GeoJson polygon coordinates
-          polygons[polygonsIdx++] = polygon;
-      } else if (regions[i] == "L") { // following is a line border of the polygon
-          i++;
-          var size = parseInt(regions[i]);
-
-          var line = regions.slice(i + 1, i + 1 + size * 2);
-          lines[lineIdx++] = line;
-      }
-  }
-
-if (polygons.length > 0){
-  polygons = lines
-}
-else{
-  lines = polygons
-}
-
-//console.log(polygons);
-myPolygons = [];
-for(i=0; i<polygons.length; i++){
- myPolygons.push([])
- for (j=0; j < polygons[i].length; j+=2){
-   myPolygons[i].push(polygonStrToHyperbolic(polygons[i][j],polygons[i][j+1]));
- }
-}
-
-polygonList = [];
-for(i = 0; i<myPolygons.length; i++){
- polygonList.push(HyperbolicCanvas.Polygon.givenVertices(myPolygons[i]));
-}
-
-console.log(polygonList)
-
-return({
-  polygonList: polygonList,
-  colors: colors
-});
+  return {'r': Math.acosh(cosh(x)*cosh(y)),
+          't': 2*Math.atanh( sinh(y) / ( sinh(x)*cosh(y) + sqrt( Math.pow(cosh(x),2) * Math.pow(cosh(y), 2) -1) ) )}
 
 }
 
@@ -603,11 +216,9 @@ var makeGraph = function(V,E){
 
   count = 0;
   for (name in V){
-    pos = parse_pos(V[name].pos);
-    console.log(pos)
-    //V[name].node = new Node(pos[0],pos[1]);
-    V[name].hPos = HyperbolicCanvas.Point.givenHyperbolicPolarCoordinates(pos[0],pos[1]);
-    //V[name].hPos = HyperbolicCanvas.Point.givenCoordinates(pos[0],pos[1]);
+    pos = lobachev_to_h_polar(V[name].pos)
+    //V[name].node = new Node(pos[0]-.5,pos[1]-.5);
+    V[name].hPos = HyperbolicCanvas.Point.givenHyperbolicPolarCoordinates(pos.r,pos.t);
     if (V[name].label && V[name].label != "\\N"){
       V[name].labelPos = {
         name: V[name].label,
@@ -646,17 +257,8 @@ var makeGraph = function(V,E){
 
 }
 
-let random_circle_coordinates = function() {
-  let x = Math.random();
-  let y = Math.random();
-  while (x*x + y*y >= 1){
-    x = Math.random();
-    y = Math.random();
-  }
-  return([x,y]);
-}
 
-  HyperbolicCanvas.scripts['read_pos'] = function (canvas,graphStr) {
+  HyperbolicCanvas.scripts['SGD_inter'] = function (canvas,graphStr) {
     var location = HyperbolicCanvas.Point.ORIGIN;
     let n = 0;
     let previousCoverage, currentCoverage, previousZoom, currentZoom;
@@ -668,27 +270,25 @@ let random_circle_coordinates = function() {
     V = {}
     E = {}
 
-    t = graphStr;
-    console.log("this is t")
+    t = JSON.parse(graphStr);
     console.log(t)
-    //t = DotParser.parse(readTextFile(graphStr));
+    //t = DotParser.parse(readTextFile('graphs/colors.dot'));
 
     for (i in t.nodes){
-      if(! t.nodes[i].id.includes('dummy')){
+      if(true){
         v = t.nodes[i].id
         V[v] = {}
         V[v].neighbors = [];
-        V[v].pos = t.nodes[i].mypos
-        console.log(t.nodes[i].mypos)
+        V[v].pos = t.nodes[i].pos
         V[v].label = t.nodes[i].label
         if(t.nodes[i].color){
           V[v].color = t.nodes[i].color;
         }
       }
     }
-    for(i in t.links){
-      E[i] = {v: t.links[i].source,
-              w: t.links[i].target}
+    for(i in t.edges){
+      E[i] = {v: t.edges[i].s,
+              w: t.edges[i].t}
     }
     for (i in E){
       V[E[i].v].neighbors.push(E[i].w.toString());
@@ -710,20 +310,20 @@ let random_circle_coordinates = function() {
 
     //originTrans = [allX/count,allY/count];
 
+    let start = performance.now();
     G = makeGraph(V,E);
     //console.log(t);
 
-    destinationList = [];
-
-
-    //D = all_pairs_shortest_path(V);
-    //L = compute_l_table(D);
-    //K = compute_k(D);
-    //console.log(D)
-  //  console.log(L)
-  //  console.log(K)
-
-    //current_max_delta = find_max_delta();
+    // destinationList = [];
+    // verticesList = generate_N_polygon(G.nodeList.length);
+    // for (i in G.nodeList) {
+    //   //position = random_circle_coordinates();
+    //   node = new Node(verticesList[i][0],verticesList[i][1]);
+    //   //destinationList.push(lambertAzimuthal(node.r,node.theta));
+    //   destinationList.push(G.nodeList[i].hPos)
+    //   G.nodeList[i].hPos = destinationList[i]
+    //   console.log(G.nodeList[i].hPos)
+    // }
 
     //KK_Step(G.nodeList,destinationList);
 
@@ -749,13 +349,6 @@ let random_circle_coordinates = function() {
       canvas.clear();
 
 
-      for(i in Map.polygonList){
-        ctx.fillStyle = Map.colors[i];
-        ctx.strokeStyle = "black";
-        path = canvas.pathForHyperbolic(Map.polygonList[i]);
-        canvas.fillAndStroke(path);
-      }
-
       //ctx.fillText('Hello world',canvas._canvas.height/2,canvas._canvas.height/2);
 
 
@@ -777,8 +370,7 @@ let random_circle_coordinates = function() {
       //Draw nodes and place text
       nodesAllowed = parseFloat($("#nodesVisible")[0].value)*1;
       for(i in G.nodeList){
-        ctx.fillStyle = "blue";
-        ctx.strokeStyle = "black";
+        ctx.fillStyle = "grey";
         if(G.nodeList[i].color){
           ctx.fillStyle = G.nodeList[i].color
         }
@@ -807,9 +399,13 @@ let random_circle_coordinates = function() {
         count += 1
       }*/
 
+      totalCount += 1
+
+
 
       requestAnimationFrame(render);
     };
+
 
     var resetLocation = function (event) {
       if (event) {

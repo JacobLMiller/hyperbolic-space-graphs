@@ -1,5 +1,5 @@
 from maps.models import Task
-from pipeline import call_graphviz, get_graphviz_map, call_graphviz_scale, set_status
+from lib.pipeline import call_graphviz, get_graphviz_map, call_graphviz_scale, set_status, call_hmds
 from re import sub, search
 import time
 from datetime import datetime
@@ -31,7 +31,10 @@ def create_task(task_parameters, user_ip):
 
 def create_map(task, *args):
 	# set up new objects
-	dot_rep, svg_rep = call_graphviz(task)
+
+	dot_rep = call_graphviz(task)
+	print(dot_rep)
+	svg_rep = 2
 	if dot_rep is None or svg_rep is None:
 		return
 
@@ -54,7 +57,9 @@ def create_map(task, *args):
 		svg_rep3, width, height = strip_dimensions(svg_rep3)
 		task.svg_rep3 = svg_rep3
 
-	svg_rep, width, height = strip_dimensions(svg_rep)
+	width = 2
+	height = 2
+	#svg_rep, width, height = strip_dimensions(svg_rep.decode())
 
 	task.dot_rep = dot_rep
 	task.svg_rep = svg_rep

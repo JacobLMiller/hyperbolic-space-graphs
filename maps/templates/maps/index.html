@@ -112,12 +112,12 @@ $(document).ready(function () {
 			</tbody></table>
 		</div>
 
-		<div id='map_advanced_options' class="wide center hide" style="visibility:hidden">
-			<script>toggleAdvanced(true)</script>
+		<div id='map_advanced_options' class="wide center hide">
+			<script>toggleAdvanced(false)</script>
 			<fieldset>
 				<legend>advanced options for map generation</legend>
 
-				<div style="width: 50%; float:left; visibility:hidden;">
+				<div style="width: 50%; float:left;">
 					<label for='vis_type' class="labelAdvanced">Visualization Type:</label>
 					<select name="vis_type" id="vis_type">
 						<option value="node-link">Node-Link Diagram</option>
@@ -130,9 +130,8 @@ $(document).ready(function () {
 
 					<label for='layout_algorithm' class="labelAdvanced">Layout Algorithm:</label>
 					<select name="layout_algorithm" id="layout_algorithm">
-						<option value="sfdp" selected='selected'>sfdp</option>
-						<option value="neato">neato</option>
-						<option value="graph">use graph setting</option>
+						<option value="SGD" selected='selected'>SGD</option>
+						<option value="neato">Tangent force-directed (neato)</option>
 					</select><br>
 
 					<label for='cluster_algorithm' class="labelAdvanced">Cluster Algorithm:</label>
@@ -154,7 +153,7 @@ $(document).ready(function () {
 					</select><br>
 				</div>
 
-				<div style="width: 50%; float:right; visibility:hidden;">
+				<div style="width: 50%; float:right;">
 					<label for='color_scheme' class="labelAdvanced">Color Scheme:</label>
 					<select name="color_scheme" id="color_scheme">
 						<option value="0">no polygons</option>

@@ -7,6 +7,10 @@ import itertools
 
 from numba import jit
 
+import pygraphviz
+import graph_tool.all as gt
+import io
+
 @jit(nopython=True)
 def geodesic(u,v):
     x1,y1 = u
@@ -119,6 +123,47 @@ def set_step(w_max,eta_max,eta_min):
 
     return np.array([step(count) for count in range(15)])
 
+def preprocess(graph,input_format='dot'):
+    if True:
+        graph_file = io.StringIO(pygraphviz.AGraph(graph).to_string())
+        G = gt.load_graph(graph_file,fmt='dot')
+        print("yo")
+        return G,get_distance_matrix(G)
+
+def postprocess(G,embedding):
+    pos = G.new_vp('vector<float>')
+    pos.set_2d_array(embedding.T)
+    G.vertex_properties['pos'] = pos
+
+    import tempfile
+    with tempfile.TemporaryFile() as file:
+        G.save(file,fmt='dot')
+        file.seek(0)
+        dot_rep = file.read()
+    return gt_to_json(G,embedding), dot_rep
+
+def gt_to_json(G,embedding):
+    nodes, edges = G.iter_vertices(),G.iter_edges()
+
+    out = {"nodes": [None for i in range(G.num_vertices())],
+            "edges": [None for i in range(G.num_edges())]
+            }
+    for v in nodes:
+        out["nodes"][int(v)] = {
+            "id": int(v),
+            "pos": list(embedding[int(v)])
+        }
+    count = 0
+    for u,v in edges:
+        ##Implement map or zip or something
+        out["edges"][count] = {
+            "s": int(u),
+            "t": int(v)
+        }
+        count += 1
+
+    return out
+
 class HMDS:
     def __init__(self,dissimilarities,epsilon=0.1,init_pos=np.array([])):
         self.d = dissimilarities
@@ -127,7 +172,7 @@ class HMDS:
         self.d_min = 1
         self.n = len(self.d)
         if self.n > 30:
-            self.d = self.d*(4/self.d_max)
+            self.d = self.d*(10/self.d_max)
         if init_pos.any(): #If an initial configuration is desired, assign it
             self.X = np.asarray(init_pos)
             if self.X.shape[0] != self.n:
@@ -154,7 +199,7 @@ class HMDS:
         self.steps = set_step(self.w_max,self.eta_max,self.eta_min)
 
 
-    def solve(self,num_iter=15,debug=False):
+    def solve(self,num_iter=25,debug=False):
         X = self.X
         d = self.d
         w = self.w
@@ -454,6 +499,64 @@ def main():
         print(i)
     output_hyperbolic(best_X,G,0)
     print(best_score)
+
+
+def get_shortest_path_distance_matrix(g, k=10, weights=None):
+    # Used to find which vertices are not connected. This has to be this weird,
+    # since graph_tool uses maxint for the shortest path distance between
+    # unconnected vertices.
+    def get_unconnected_distance():
+        g_mock = gt.Graph()
+        g_mock.add_vertex(2)
+        shortest_distances_mock = gt.shortest_distance(g_mock)
+        unconnected_dist = shortest_distances_mock[0][1]
+        return unconnected_dist
+
+    # Get the value (usually maxint) that graph_tool uses for distances between
+    # unconnected vertices.
+    unconnected_dist = get_unconnected_distance()
+
+    # Get shortest distances for all pairs of vertices in a NumPy array.
+    X = gt.shortest_distance(g, weights=weights).get_2d_array(range(g.num_vertices()))
+
+    if len(X[X == unconnected_dist]) > 0:
+        print('[distance_matrix] There were disconnected components!')
+
+    # Get maximum shortest-path distance (ignoring maxint)
+    X_max = X[X != unconnected_dist].max()
+
+    # Set the unconnected distances to k times the maximum of the other
+    # distances.
+    X[X == unconnected_dist] = k * X_max
+
+    return X
+
+
+# Return the distance matrix of g, with the specified metric.
+def get_distance_matrix(g, distance_metric='shortest_path', normalize=False, k=10.0, verbose=True, weights=None):
+    if verbose:
+        print('[distance_matrix] Computing distance matrix (metric: {0})'.format(distance_metric))
+
+    if distance_metric == 'shortest_path' or distance_metric == 'spdm':
+        X = get_shortest_path_distance_matrix(g, weights=weights)
+    elif distance_metric == 'modified_adjacency' or distance_metric == 'mam':
+        X = get_modified_adjacency_matrix(g, k)
+    else:
+        raise Exception('Unknown distance metric.')
+
+    # Just to make sure, symmetrize the matrix.
+    X = (X + X.T) / 2
+
+    # Force diagonal to zero
+    X[range(X.shape[0]), range(X.shape[1])] = 0
+
+    # Normalize matrix s.t. max is 1.
+    if normalize:
+        X /= np.max(X)
+    if verbose:
+        print('[distance_matrix] Done!')
+
+    return X
 #g = ig.Graph.Tree(500,2)
 #g.write_dot('input.dot')
 

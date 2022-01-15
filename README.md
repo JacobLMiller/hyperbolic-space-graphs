@@ -1,15 +1,10 @@
 Hyperbolic realization of graphs
 ================
-This webserver will compute a graph layout in hyperbolic space, using tangent planes as described in the below paper. The graphs are displayed in a Poincare disk.
+Repository accompanying IEEE PacificVis submission.
 
 Explanation video:
 
-[![Explanation Video](https://img.youtube.com/vi/pA-CEC3FNcU/default.jpg)](https://www.youtube.com/watch?v=pA-CEC3FNcU)
-
-
-Kobourov, S., Wampler, K.: Non-Euclidean spring embedders. IEEE Trans. Vis.
-Comput. Graph. 11(6), 757–767 (2005). [doi](https://doi.org/10.1109/TVCG.2005.103)
-
+For HMDS by SGD, take a look at the SGD folder.
 
 Basic Setup
 --------

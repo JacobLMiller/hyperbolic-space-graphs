@@ -19,8 +19,8 @@ let keepGoing = true;
 let mapNodes = [];
 //let graphStr = "graphs/hyperbolic_colors.dot"
 
-let L0 = 3;
-let K0 = 20;
+let L0 = 10;
+let K0 = 1;
 let ANIMATION_SPEED = 1;
 let ITERATIONS = 1000000;
 
@@ -675,12 +675,12 @@ let random_circle_coordinates = function() {
     V = {}
     E = {}
 
-    t = graphStr;
+    t = JSON.parse(graphStr);
     console.log(graphStr)
     //t = DotParser.parse(readTextFile('graphs/colors.dot'));
 
     for (i in t.nodes){
-      if(! t.nodes[i].id.includes('dummy')){
+      if(true){
         v = t.nodes[i].id
         V[v] = {}
         V[v].neighbors = [];
@@ -691,9 +691,9 @@ let random_circle_coordinates = function() {
         }
       }
     }
-    for(i in t.links){
-      E[i] = {v: t.links[i].source,
-              w: t.links[i].target}
+    for(i in t.edges){
+      E[i] = {v: t.edges[i].s,
+              w: t.edges[i].t}
     }
     for (i in E){
       V[E[i].v].neighbors.push(E[i].w.toString());
@@ -748,7 +748,7 @@ let random_circle_coordinates = function() {
 
     let deltas = find_max_delta();
 
-    while(myCount < 2000 && keepGoing) {
+    while(myCount < 10000 && keepGoing) {
 
         m = deltas.pop()
         KK_Step(G.nodeList,destinationList, m);

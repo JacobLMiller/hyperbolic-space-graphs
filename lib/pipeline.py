@@ -2,7 +2,7 @@
 import threading
 threading._DummyThread._Thread__stop = lambda x: 42
 from subprocess import Popen, PIPE
-from interface import CallExternalException
+from lib.interface import CallExternalException
 from maps.models import Task
 
 import logging
@@ -16,7 +16,8 @@ if CURPATH.startswith('/cygdrive'):
 	CURPATH = path[2] + ":/" + "/".join(path[3:])
 
 def graphviz_command_layout(alg='sfdp'):
-    return "%s -Goverlap=prism -Goutputorder=edgesfirst -Gsize=60,60!" % (alg)
+	temp = "%s -Goverlap=prism -Goutputorder=edgesfirst -Gsize=60,60!" % (alg)
+	return temp
 
 def graphviz_command_gmap(color_scheme):
     if color_scheme == 'bubble-sets':
@@ -62,16 +63,16 @@ def pointcloud_command():
 
 def removeNonAscii(s): return "".join(i for i in s if ord(i)<128)
 
-def call_process(gv_command, map_string, raw_output = False):
+def call_process(gv_command, map_string, raw_output = False, encoding='utf8'):
 	proc = Popen(gv_command, stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
-	dot_out, map_err = proc.communicate(input = removeNonAscii(map_string))
+	dot_out, map_err = proc.communicate(input = removeNonAscii(map_string).encode())
 	if map_err:
-		print map_err
+		print(map_err)
 	if proc.returncode != 0:
 		raise CallExternalException(map_err)
 	if raw_output:
 		return dot_out
-	return removeNonAscii(dot_out)
+	return removeNonAscii(dot_out.decode())
 
 def call_graphviz(task):
 	try:
@@ -85,7 +86,10 @@ def run_layout(task, layout_algorithm, map_string):
 		return map_string
 
 	set_status(task, 'running layout')
-	return call_process(graphviz_command_layout(alg = layout_algorithm), map_string)
+
+	process = call_process(graphviz_command_layout(alg = layout_algorithm), map_string)
+
+	return process
 
 def run_clustering(task, cluster_algorithm, dot_out):
 	if cluster_algorithm == 'graph':
@@ -121,85 +125,93 @@ def run_color_assignment(task, dot_out):
 	return call_process(colors_command(), dot_out)
 
 def call_graphviz_int(task):
-    map_string = task.input_dot
-    vis_type = task.vis_type
-    layout_algorithm = task.layout_algorithm
-    cluster_algorithm = task.cluster_algorithm
+	map_string = task.input_dot
+	vis_type = task.vis_type
+	layout_algorithm = task.layout_algorithm
+	cluster_algorithm = task.cluster_algorithm
 
-    if vis_type == 'node-link':
-    	#pipeline with no clustering
-    	dot_out = run_layout(task, layout_algorithm, map_string)
+	if task.layout_algorithm == 'SGD':
+		return call_hmds(task)
+	elif task.layout_algorithm == 'neato':
+		return task.input_dot
 
-    	svg_out = get_graphviz_map(dot_out, 'svg')
-    	return dot_out, svg_out
-    elif vis_type == 'gmap':
-    	#default pipeline
-    	dot_out = run_layout(task, layout_algorithm, map_string)
-    	dot_out = run_clustering(task, cluster_algorithm, dot_out)
-    	dot_out = call_process(graphviz_command_gmap(task.color_scheme), dot_out)
-    	if task.color_scheme == 'bubble-sets':
-    		dot_out = run_color_assignment(task, dot_out)
-
-    	set_status(task, 'map construction')
-    	svg_out = get_graphviz_map(dot_out, 'svg')
-    	return dot_out, svg_out
-
-    elif vis_type == 'point-cloud':
-    	dot_out = run_layout(task, layout_algorithm, map_string)
-    	dot_out = run_clustering(task, cluster_algorithm, dot_out)
-    	dot_out = call_process(graphviz_command_gmap(task.color_scheme), dot_out)
-    	if task.color_scheme == 'bubble-sets':
-    		dot_out = run_color_assignment(task, dot_out)
-
-    	set_status(task, 'point cloud construction')
-    	dot_out = call_process(pointcloud_command(), dot_out)
-
-    	svg_out = get_graphviz_map(dot_out, 'svg')
-    	return dot_out, svg_out
-
-    elif vis_type == 'bubble-sets':
-    	dot_out = run_layout(task, layout_algorithm, map_string)
-    	dot_out = run_clustering(task, cluster_algorithm, dot_out)
-    	dot_out = call_process(graphviz_command_gmap(task.color_scheme), dot_out)
-    	if task.color_scheme == 'bubble-sets':
-    		dot_out = run_color_assignment(task, dot_out)
-
-    	set_status(task, 'creating bubble sets')
-    	dot_out = call_process(bubblesets_command(), dot_out)
-
-    	svg_out = get_graphviz_map(dot_out, 'svg')
-    	return dot_out, svg_out
-
-    elif vis_type == 'line-sets':
-    	dot_out = run_layout(task, layout_algorithm, map_string)
-    	dot_out = run_clustering(task, cluster_algorithm, dot_out)
-    	dot_out = call_process(graphviz_command_gmap(task.color_scheme), dot_out)
-    	if task.color_scheme == 'bubble-sets':
-    		dot_out = run_color_assignment(task, dot_out)
-
-    	set_status(task, 'creating line sets')
-    	dot_out = call_process(linesets_command(), dot_out)
-
-    	svg_out = get_graphviz_map(dot_out, 'svg')
-    	return dot_out, svg_out
-
-    elif vis_type == 'map-sets':
-    	dot_out = run_layout(task, layout_algorithm, map_string)
-    	dot_out = run_clustering(task, cluster_algorithm, dot_out)
-    	# running ceba
-    	#if not cluster_algorithm.startswith('cont-'):
-    	#	set_status(task, 'making map contiguous')
-    	#	dot_out = call_process(ceba_command(), dot_out)
-
-    	set_status(task, 'creating map sets')
-    	#log.debug('MapSets-Input: %s' %(dot_out))
-    	dot_out = call_process(mapsets_command(), dot_out)
-    	dot_out = call_process(mapsets_post_command(task.color_scheme), dot_out)
-    	if task.color_scheme == 'bubble-sets':
-    		dot_out = run_color_assignment(task, dot_out)
-
-    	svg_out = get_graphviz_map(dot_out, 'svg')
-    	return dot_out, svg_out
+	# if vis_type == 'node-link':
+	# #pipeline with no clustering
+	# 	dot_out = run_layout(task, layout_algorithm, map_string)
+	#
+	# 	svg_out = get_graphviz_map(dot_out, 'svg')
+	# 	return dot_out, svg_out
+	# elif vis_type == 'gmap':
+	# 	#default pipeline
+	#
+	# 	dot_out = run_layout(task, layout_algorithm, map_string)
+	# 	dot_out = run_clustering(task, cluster_algorithm, dot_out)
+	# 	dot_out = call_process(graphviz_command_gmap(task.color_scheme), dot_out)
+	# 	if task.color_scheme == 'bubble-sets':
+	# 		dot_out = run_color_assignment(task, dot_out)
+	#
+	#
+	# 	set_status(task, 'map construction')
+	# 	svg_out = get_graphviz_map(dot_out, 'svg')
+	#
+	# 	return dot_out, svg_out
+	#
+	# elif vis_type == 'point-cloud':
+	# 	dot_out = run_layout(task, layout_algorithm, map_string)
+	# 	dot_out = run_clustering(task, cluster_algorithm, dot_out)
+	# 	dot_out = call_process(graphviz_command_gmap(task.color_scheme), dot_out)
+	# 	if task.color_scheme == 'bubble-sets':
+	# 		dot_out = run_color_assignment(task, dot_out)
+	#
+	# 	set_status(task, 'point cloud construction')
+	# 	dot_out = call_process(pointcloud_command(), dot_out)
+	#
+	# 	svg_out = get_graphviz_map(dot_out, 'svg')
+	# 	return dot_out, svg_out
+	#
+	# elif vis_type == 'bubble-sets':
+	# 	dot_out = run_layout(task, layout_algorithm, map_string)
+	# 	dot_out = run_clustering(task, cluster_algorithm, dot_out)
+	# 	dot_out = call_process(graphviz_command_gmap(task.color_scheme), dot_out)
+	# 	if task.color_scheme == 'bubble-sets':
+	# 		dot_out = run_color_assignment(task, dot_out)
+	#
+	# 	set_status(task, 'creating bubble sets')
+	# 	dot_out = call_process(bubblesets_command(), dot_out)
+	#
+	# 	svg_out = get_graphviz_map(dot_out, 'svg')
+	# 	return dot_out, svg_out
+	#
+	# elif vis_type == 'line-sets':
+	# 	dot_out = run_layout(task, layout_algorithm, map_string)
+	# 	dot_out = run_clustering(task, cluster_algorithm, dot_out)
+	# 	dot_out = call_process(graphviz_command_gmap(task.color_scheme), dot_out)
+	# 	if task.color_scheme == 'bubble-sets':
+	# 		dot_out = run_color_assignment(task, dot_out)
+	#
+	# 	set_status(task, 'creating line sets')
+	# 	dot_out = call_process(linesets_command(), dot_out)
+	#
+	# 	svg_out = get_graphviz_map(dot_out, 'svg')
+	# 	return dot_out, svg_out
+	#
+	# elif vis_type == 'map-sets':
+	# 	dot_out = run_layout(task, layout_algorithm, map_string)
+	# 	dot_out = run_clustering(task, cluster_algorithm, dot_out)
+	# 	# running ceba
+	# 	#if not cluster_algorithm.startswith('cont-'):
+	# 	#	set_status(task, 'making map contiguous')
+	# 	#	dot_out = call_process(ceba_command(), dot_out)
+	#
+	# 	set_status(task, 'creating map sets')
+	# 	#log.debug('MapSets-Input: %s' %(dot_out))
+	# 	dot_out = call_process(mapsets_command(), dot_out)
+	# 	dot_out = call_process(mapsets_post_command(task.color_scheme), dot_out)
+	# 	if task.color_scheme == 'bubble-sets':
+	# 		dot_out = run_color_assignment(task, dot_out)
+	#
+	# 	svg_out = get_graphviz_map(dot_out, 'svg')
+	# 	return dot_out, svg_out
 
 
 def get_graphviz_map(map_string, file_format):
@@ -213,3 +225,17 @@ def call_graphviz_scale(dot_rep, s1, s2):
 def set_status(task, s):
    	task.status = s
    	task.save()
+
+
+def call_hmds(task):
+	from SGD.HMDS import HMDS,preprocess,postprocess
+	print("we have to be here")
+	G,d = preprocess(task.input_dot,input_format="dot")
+	print("hello")
+	Y = HMDS(d)
+	Y.solve()
+	print('helo')
+	json_rep,dot_out = postprocess(G,Y.X)
+	print('hello?')
+
+	return json_rep

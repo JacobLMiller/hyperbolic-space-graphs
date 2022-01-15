@@ -1,10 +1,10 @@
-from django.conf.urls import patterns, include, url
+from django.conf.urls import include, url
 
-import views
+import gmap_web.views as views
 
-urlpatterns = patterns('',
+urlpatterns = [
 	url(r'^admin$', views.home, name='home'),
 	url(r'^admin/reload/$', views.rld, name='rld'),
-	url(r'^', include('maps.urls', namespace="maps")),
-	url(r'^accounts/login/$', 'django.contrib.auth.views.login'),
-)
+	url(r'^', include(('maps.urls','display_map'), namespace="display_map")),
+	#url(r'^accounts/login/$', 'django.contrib.auth.views.login'),
+]

@@ -1,7 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 
-import commands
+import gmap_web.commands as commands
 
 @login_required
 def rld(request):
