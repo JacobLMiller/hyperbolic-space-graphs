@@ -270,6 +270,7 @@ var makeGraph = function(V,E){
     V = {}
     E = {}
 
+    console.log(graphStr)
     t = JSON.parse(graphStr);
     console.log(t)
     //t = DotParser.parse(readTextFile('graphs/colors.dot'));

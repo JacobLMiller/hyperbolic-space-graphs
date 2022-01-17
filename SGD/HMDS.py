@@ -165,7 +165,7 @@ def gt_to_json(G,embedding):
     return out
 
 class HMDS:
-    def __init__(self,dissimilarities,epsilon=0.1,init_pos=np.array([])):
+    def __init__(self,dissimilarities,init_pos=np.empty(1):
         self.d = dissimilarities
         self.d_max = np.max(dissimilarities)
         #self.d = self.d*(2*math.pi/self.d_max)
@@ -192,14 +192,14 @@ class HMDS:
         self.w_max = 1/pow(self.d_min,2)
 
         self.eta_max = 1/w_min
-        self.eta_min = epsilon/self.w_max
+        self.eta_min = 0.1/self.w_max
 
         self.indices = np.array(list(itertools.combinations(range(self.n), 2)))
 
         self.steps = set_step(self.w_max,self.eta_max,self.eta_min)
 
 
-    def solve(self,num_iter=25,debug=False):
+    def solve(self,num_iter=20,debug=False):
         X = self.X
         d = self.d
         w = self.w
@@ -274,113 +274,13 @@ def normalize(v):
     mag = pow(sum([val*val for val in v]), 0.5)
     return np.array([val/mag for val in v])
 
-def mobius(z,a,b,c,d):
-    return a*z+b/c*z+d
-
-def geodesic2(xi,xj):
-    return lob_dist(xi,xj)
-
-def choose(n,k):
-    product = 1
-    for i in range(1,k+1):
-        product *= (n-(k-1))/i
-    return product
-
-
-def grad(p,q):
-    r,t = p
-    a,b = q
-    sin = np.sin
-    cos = np.cos
-    sinh = math.sinh
-    cosh = math.cosh
-    bottom = 1/pow(pow(part_of_dist(p,q),2)-1,0.5)
-
-    delta_a = -(cos(b-t)*sinh(r)*cosh(a)-sinh(a)*cosh(r))*bottom
-    delta_b = (sin(b-t)*sinh(a)*sinh(r))*bottom
-
-    delta_r = -1*(cos(b-t)*sinh(a)*cosh(r)-sinh(r)*cosh(a))*bottom
-    delta_t = -1*(sin(b-t)*sinh(a)*sinh(r))*bottom
-
-    return np.array([[delta_r,delta_t],[delta_a,delta_b]])
-
-def part_of_dist(xi,xj):
-    r,t = xi
-    a,b = xj
-    sinh = np.sinh
-    cosh = np.cosh
-    #print(np.cosh(y1)*np.cosh(x2-x1)*np.cosh(y2)-np.sinh(y1)*np.sinh(y2))
-    return np.cos(b-t)*sinh(a)*sinh(r)-cosh(a)*cosh(r)
-
-def grad_old(p,q):
-    x,y = p
-    a,b = q
-    sinh = math.sinh
-    cosh = math.cosh
-    bottom = 1/pow(pow(part_of_dist_old(p,q),2)-1,0.5)
-
-    delta_a = sinh(a-x)*cosh(b)*cosh(y)*bottom
-    delta_b = -1*(-sinh(b)*cosh(y)*cosh(a-x)+sinh(y)*cosh(b))*bottom
-
-    delta_x = -1*sinh(a-x)*cosh(b)*cosh(y)*bottom
-    delta_y = (-sinh(b)*cosh(y) + sinh(y)*cosh(b)*cosh(a-x))*bottom
-
-    return np.array([[delta_x,delta_y],[delta_a,delta_b]])
-
-def part_of_dist_old(xi,xj):
-    x,y = xi
-    a,b = xj
-    #print(np.cosh(y1)*np.cosh(x2-x1)*np.cosh(y2)-np.sinh(y1)*np.sinh(y2))
-    return np.sinh(b)*np.sinh(y)-np.cosh(b)*np.cosh(y)*np.cosh(a-x)
-
-
-def polar_dist(x1,x2):
-    r1,theta1 = x1
-    r2,theta2 = x2
-    return np.arccosh(np.cosh(r1)*np.cosh(r2)-np.sinh(r1)*np.sinh(r2)*np.cos(theta2-theta1))
-
 
 
 def lob_dist(xi,xj):
     x1,y1 = xi
     x2,y2 = xj
     dist = np.arccosh(np.cosh(y1)*np.cosh(x2-x1)*np.cosh(y2)-np.sinh(y1)*np.sinh(y2))
-    if np.isnan(dist):
-        return 200
     return dist
-
-
-def bfs(G,start):
-    queue = [start]
-    discovered = [start]
-    distance = {start: 0}
-
-    while len(queue) > 0:
-        v = queue.pop()
-
-        for w in G.neighbors(v):
-            if w not in discovered:
-                discovered.append(w)
-                distance[w] =  distance[v] + 1
-                queue.insert(0,w)
-
-    myList = []
-    for x in G.nodes:
-        if x in distance:
-            myList.append(distance[x])
-        else:
-            myList.append(-1)
-
-    return myList
-
-def all_pairs_shortest_path(G):
-    d = [ [ -1 for i in range(len(G.nodes)) ] for j in range(len(G.nodes)) ]
-
-    count = 0
-    for node in G.nodes:
-        d[count] = bfs(G,node)
-        count += 1
-    return d
 
 def scale_matrix(d,new_max):
     d_new = np.zeros(d.shape)
@@ -395,61 +295,7 @@ def scale_matrix(d,new_max):
     return d_new
 
 
-def euclid_dist(x1,x2):
-    x = x2[0]-x1[0]
-    y = x2[1]-x1[1]
-    return pow(x*x+y*y,0.5)
 
-
-def output_euclidean(X):
-    pos = {}
-    count = 0
-    for x in G.nodes():
-        pos[x] = X[count]
-        count += 1
-    nx.draw(G,pos=pos,with_labels=True)
-    plt.show()
-    plt.clf()
-
-def Draw_SVG(X,number):
-    points = []
-    lines = []
-    nodeDict = {}
-    d = Drawing(2.1,2.1, origin='center')
-    d.draw(euclid.shapes.Circle(0, 0, 1), fill='#ddd')
-
-    count = 0
-    for i in G.nodes():
-        x,y= X[count]
-        Rh = np.arccosh(np.cosh(x)*np.cosh(y))
-        theta = 2*math.atan2(np.sinh(x)*np.cosh(y)+pow(pow(np.cosh(x),2)*pow(np.cosh(y),2)-1,0.5),np.sinh(y))
-        Re = (math.exp(Rh)-1)/(math.exp(Rh)+1)
-        #Re = (math.exp(r)-1)/(math.exp(r)+1)
-        x = Re*np.cos(theta)
-        y = Re*np.sin(theta)
-        G.nodes[i]['pos'] = [x,y]
-        count += 1
-
-    for i in G.nodes:
-        #print(G.nodes[i]['pos'])
-        #print(cmath.polar(complex(*G.nodes[i]['pos'])))
-        points.append(Point(G.nodes[i]['pos'][0],G.nodes[i]['pos'][1]))
-        nodeDict[i] = points[-1]
-
-    for i in G.edges:
-        lines.append(Line.fromPoints(*nodeDict[i[0]],*nodeDict[i[1]],segment=True))
-
-    #trans = Transform.shiftOrigin(points[0])
-
-    for i in lines:
-        d.draw(i,hwidth=.01,fill='black')
-
-    for i in points:
-        d.draw(i,hradius=.05,fill='green')
-
-
-    d.setRenderSize(w=1000)
-    d.saveSvg('SGD/slideshow/Test' + str(number) + '.svg')
 
 def output_hyperbolic(X,G):
     import networkx as nx
@@ -499,75 +345,3 @@ def main():
         print(i)
     output_hyperbolic(best_X,G,0)
     print(best_score)
-
-
-def get_shortest_path_distance_matrix(g, k=10, weights=None):
-    # Used to find which vertices are not connected. This has to be this weird,
-    # since graph_tool uses maxint for the shortest path distance between
-    # unconnected vertices.
-    def get_unconnected_distance():
-        g_mock = gt.Graph()
-        g_mock.add_vertex(2)
-        shortest_distances_mock = gt.shortest_distance(g_mock)
-        unconnected_dist = shortest_distances_mock[0][1]
-        return unconnected_dist
-
-    # Get the value (usually maxint) that graph_tool uses for distances between
-    # unconnected vertices.
-    unconnected_dist = get_unconnected_distance()
-
-    # Get shortest distances for all pairs of vertices in a NumPy array.
-    X = gt.shortest_distance(g, weights=weights).get_2d_array(range(g.num_vertices()))
-
-    if len(X[X == unconnected_dist]) > 0:
-        print('[distance_matrix] There were disconnected components!')
-
-    # Get maximum shortest-path distance (ignoring maxint)
-    X_max = X[X != unconnected_dist].max()
-
-    # Set the unconnected distances to k times the maximum of the other
-    # distances.
-    X[X == unconnected_dist] = k * X_max
-
-    return X
-
-
-# Return the distance matrix of g, with the specified metric.
-def get_distance_matrix(g, distance_metric='shortest_path', normalize=False, k=10.0, verbose=True, weights=None):
-    if verbose:
-        print('[distance_matrix] Computing distance matrix (metric: {0})'.format(distance_metric))
-
-    if distance_metric == 'shortest_path' or distance_metric == 'spdm':
-        X = get_shortest_path_distance_matrix(g, weights=weights)
-    elif distance_metric == 'modified_adjacency' or distance_metric == 'mam':
-        X = get_modified_adjacency_matrix(g, k)
-    else:
-        raise Exception('Unknown distance metric.')
-
-    # Just to make sure, symmetrize the matrix.
-    X = (X + X.T) / 2
-
-    # Force diagonal to zero
-    X[range(X.shape[0]), range(X.shape[1])] = 0
-
-    # Normalize matrix s.t. max is 1.
-    if normalize:
-        X /= np.max(X)
-    if verbose:
-        print('[distance_matrix] Done!')
-
-    return X
-#g = ig.Graph.Tree(500,2)
-#g.write_dot('input.dot')
-
-#G = nx.drawing.nx_agraph.read_dot('SGD/input.dot')
-#G = nx.full_rary_tree(2,200)
-#G = nx.hypercube_graph(3)
-#G = get_hyperbolic_graph(100,alpha=1.2)
-#G = nx.circular_ladder_graph(20)
-#G = nx.triangular_lattice_graph(5,5)
-#nx.drawing.nx_agraph.write_dot(G, "output_hyperbolic.dot")
-#G = nx.random_tree(100)
-#print(G.nodes())
-#d = np.array(all_pairs_shortest_path(G))/1
-#main()

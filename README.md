@@ -1,15 +1,13 @@
 Hyperbolic realization of graphs
 ================
-Repository accompanying IEEE PacificVis submission.
+Repository accompanying IEEE PacificVis submission. Webserver yet to be hosted.
 
-Explanation video:
-
-For HMDS by SGD, take a look at the SGD folder.
+To see the python implementation of HMDS by SGD, take a look at the SGD folder (which is invoked by the webserver).
 
 Basic Setup
 --------
 
-1. Install the python dependencies listed in [requirements.txt](requirements.txt). Using pip:
+1. Install the python dependencies listed using pip:
 
         pip install -r requirements.txt
 
@@ -20,13 +18,14 @@ Edit `DATABASES`, `SECRET_KEY`, `ALLOWED_HOSTS` and `ADMINS` in `gmap_web/settin
 
 4. Create Django databases:
 
-        ./manage.py syncdb
+        python manage.py makemigrations
+        python manage.py migrate
 
 5. Run the server:
 
-        ./manage.py runserver
+        python manage.py runserver
 
-6. Access the map interface at `http://localhost:8000`
+6. Access the interface at `http://localhost:8000`
 
 License
 --------
