@@ -165,7 +165,7 @@ def gt_to_json(G,embedding):
     return out
 
 class HMDS:
-    def __init__(self,dissimilarities,init_pos=np.empty(1):
+    def __init__(self,dissimilarities,init_pos=np.empty(1)):
         self.d = dissimilarities
         self.d_max = np.max(dissimilarities)
         #self.d = self.d*(2*math.pi/self.d_max)

@@ -1,8 +1,8 @@
 Hyperbolic realization of graphs
 ================
-Repository accompanying IEEE PacificVis submission. Webserver yet to be hosted.
+Repository accompanying IEEE PacificVis submission. Webserver to be hosted.
 
-To see the python implementation of HMDS by SGD, take a look at the SGD folder (which is invoked by the webserver).
+HMDS can be run independent of the webserver to produce static images. Take a look at the SGD folder for more details.
 
 Basic Setup
 --------
@@ -11,7 +11,7 @@ Basic Setup
 
         pip install -r requirements.txt
 
-2. Install [graphviz](http://graphviz.org/Download..php)
+2. Install [graphviz](http://graphviz.org/Download..php) and [graph-tool](https://graph-tool.skewed.de/)
 
 3. Set up Django settings (optional).
 Edit `DATABASES`, `SECRET_KEY`, `ALLOWED_HOSTS` and `ADMINS` in `gmap_web/settings.py`
@@ -30,3 +30,11 @@ Edit `DATABASES`, `SECRET_KEY`, `ALLOWED_HOSTS` and `ADMINS` in `gmap_web/settin
 License
 --------
 Code is released under the [MIT License](MIT-LICENSE.txt).
+
+Dependencies:
+--------
+* `python3`
+* [`django 3.2`](https://www.djangoproject.com/)
+* [`numpy`](http://www.numpy.org/)
+* [`graph-tool`](https://graph-tool.skewed.de/)
+* [`numba`](https://numba.pydata.org/)

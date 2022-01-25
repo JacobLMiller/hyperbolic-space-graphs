@@ -1,0 +1,30 @@
+graph G {
+A;
+B;
+C;
+D;
+E;
+F;
+G;
+H;
+I;
+J;
+A--B ;
+A--C ;
+B--C ;
+B--D ;
+B--E ;
+C--E ;
+C--F ;
+D--E ;
+D--G ;
+D--H ;
+E--H ;
+E--I ;
+F--E ;
+F--I ;
+F--J ;
+G--H ;
+H--I ;
+I--J ;
+}
