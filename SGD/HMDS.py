@@ -165,14 +165,14 @@ def gt_to_json(G,embedding):
     return out
 
 class HMDS:
-    def __init__(self,dissimilarities,init_pos=np.empty(1)):
+    def __init__(self,dissimilarities,opt_scale=False,scaling_factor=0,init_pos=np.empty(1)):
         self.d = dissimilarities
         self.d_max = np.max(dissimilarities)
         #self.d = self.d*(2*math.pi/self.d_max)
         self.d_min = 1
         self.n = len(self.d)
-        if self.n > 30:
-            self.d = self.d*(10/self.d_max)
+        # if self.n > 30:
+        #     self.d = self.d*(10/self.d_max)
         if init_pos.any(): #If an initial configuration is desired, assign it
             self.X = np.asarray(init_pos)
             if self.X.shape[0] != self.n:
@@ -199,7 +199,7 @@ class HMDS:
         self.steps = set_step(self.w_max,self.eta_max,self.eta_min)
 
 
-    def solve(self,num_iter=20,debug=False):
+    def solve(self,num_iter=20,debug=False,until_conv=False):
         X = self.X
         d = self.d
         w = self.w
@@ -213,6 +213,7 @@ class HMDS:
 
         X = stoch_solver(self.X,self.d,self.w,self.indices,self.steps,num_iter=num_iter)
         self.X = X
+        return X
 
     def calc_stress3(self):
         """

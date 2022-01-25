@@ -229,13 +229,9 @@ def set_status(task, s):
 
 def call_hmds(task):
 	from SGD.HMDS import HMDS,preprocess,postprocess
-	print("we have to be here")
 	G,d = preprocess(task.input_dot,input_format="dot")
-	print("hello")
 	Y = HMDS(d)
 	Y.solve()
-	print('helo')
 	json_rep,dot_out = postprocess(G,Y.X)
-	print('hello?')
 
 	return json_rep
