@@ -16,13 +16,13 @@ def create_task(task_parameters, user_ip):
 	task.creation_ip = user_ip
 
 	task.input_dot = task_parameters['dotfile']
-	task.vis_type = task_parameters['vis_type']
+	task.vis_type = "Gmap"
 	task.layout_algorithm = task_parameters['layout_algorithm']
-	task.cluster_algorithm = task_parameters['cluster_algorithm']
-	task.contiguous_algorithm = task_parameters.get('spherical', 'false')
+	task.iterations = task_parameters['iterations']
+	task.opt_alpha = task_parameters.get('opt_alpha', 'false')
 	task.hyperbolic_projection = task_parameters.get('hyperbolic','false')
-	task.color_scheme = task_parameters['color_scheme']
-	task.semantic_zoom = task_parameters.get('semantic_zoom', 'false')
+	task.color_scheme = "blue" #task_parameters['color_scheme']
+	task.convergence = task_parameters.get('convergence', 'false')
 	task.status = 'created'
 
 	task.save()
@@ -33,29 +33,9 @@ def create_map(task, *args):
 	# set up new objects
 
 	dot_rep = call_graphviz(task)
-	print(dot_rep)
 	svg_rep = 2
 	if dot_rep is None or svg_rep is None:
 		return
-
-	if task.semantic_zoom == 'true':
-		set_status(task, 'semantic zoom construction')
-
-		svg_rep0 = call_graphviz_scale(dot_rep, 4, 10)
-		svg_rep0, width, height = strip_dimensions(svg_rep0)
-		task.svg_rep0 = svg_rep0
-
-		svg_rep1 = call_graphviz_scale(dot_rep, 3, 20)
-		svg_rep1, width, height = strip_dimensions(svg_rep1)
-		task.svg_rep1 = svg_rep1
-
-		svg_rep2 = call_graphviz_scale(dot_rep, 2, 40)
-		svg_rep2, width, height = strip_dimensions(svg_rep2)
-		task.svg_rep2 = svg_rep2
-
-		svg_rep3 = call_graphviz_scale(dot_rep, 1, 80)
-		svg_rep3, width, height = strip_dimensions(svg_rep3)
-		task.svg_rep3 = svg_rep3
 
 	width = 2
 	height = 2

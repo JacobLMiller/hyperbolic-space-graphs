@@ -22,12 +22,12 @@ class Task(models.Model):
 
     vis_type = models.CharField(max_length=64)
     layout_algorithm = models.CharField(max_length=64)
-    cluster_algorithm = models.CharField(max_length=64)
-    contiguous_algorithm = models.CharField(max_length=64)
+    iterations = models.CharField(max_length=64)
+    opt_alpha = models.CharField(max_length=64)
     hyperbolic_projection = models.CharField(max_length=64)
 
     color_scheme  = models.CharField(max_length=64)
-    semantic_zoom  = models.CharField(max_length=64)
+    convergence  = models.CharField(max_length=64)
 
     def metadata(self):
         return {

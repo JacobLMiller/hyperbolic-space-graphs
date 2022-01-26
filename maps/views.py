@@ -115,7 +115,6 @@ def get_json(request, task_id):
 		#dot_graph = nx_agraph.from_agraph(pygraphviz.AGraph(task.dot_rep))
 		#graph_json = json.dumps(json_graph.node_link_data(dot_graph))
 		graph_json = json.dumps(task.dot_rep)
-		print(graph_json)
 
 		return HttpResponse(graph_json, content_type='application/json')
 

@@ -216,9 +216,10 @@ var makeGraph = function(V,E){
 
   count = 0;
   for (name in V){
-    pos = lobachev_to_h_polar(V[name].pos)
+    pos = {'x': V[name].pos[0], 'y': V[name].pos[1] }
+    console.log(pos)
     //V[name].node = new Node(pos[0]-.5,pos[1]-.5);
-    V[name].hPos = HyperbolicCanvas.Point.givenHyperbolicPolarCoordinates(pos.r,pos.t);
+    V[name].hPos = HyperbolicCanvas.Point.givenCoordinates(pos.x,pos.y);
     if (V[name].label && V[name].label != "\\N"){
       V[name].labelPos = {
         name: V[name].label,

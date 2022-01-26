@@ -125,10 +125,7 @@ def run_color_assignment(task, dot_out):
 	return call_process(colors_command(), dot_out)
 
 def call_graphviz_int(task):
-	map_string = task.input_dot
-	vis_type = task.vis_type
 	layout_algorithm = task.layout_algorithm
-	cluster_algorithm = task.cluster_algorithm
 
 	if task.layout_algorithm == 'SGD':
 		return call_hmds(task)
@@ -229,9 +226,16 @@ def set_status(task, s):
 
 def call_hmds(task):
 	from SGD.HMDS import HMDS,preprocess,postprocess
+	iter = int(task.iterations)
+	until_convergence = True if task.convergence == 'true' else False
+	opt_alpha = True if task.opt_alpha == 'true' else False
+	print("can I preprocss?")
+
+
 	G,d = preprocess(task.input_dot,input_format="dot")
-	Y = HMDS(d)
-	Y.solve()
+	Y = HMDS(d,opt_scale=opt_alpha)
+	Y.solve(num_iter=iter,until_conv=until_convergence)
 	json_rep,dot_out = postprocess(G,Y.X)
+	print(json_rep)
 
 	return json_rep

@@ -34,8 +34,9 @@ def satisfy(u,v,d,w,step):
     pq = u-v
     mag = geodesic(u,v)
     r = (mag-d)/2
+    #print(r)
 
-    wc = w*step
+    wc = step / pow(d,2)
     if wc > 1:
         wc = 1
     r = wc*r
@@ -57,7 +58,7 @@ def calc_stress(X,d,w):
     stress = 0
     for i in range(len(X)):
         for j in range(i):
-            stress += w[i][j]*pow(geodesic(X[i],X[j])-d[i][j],2)
+            stress += (1/pow(d[i][j],2))*pow(geodesic(X[i],X[j])-d[i][j],2)
     return pow(stress,0.5)
 
 @jit(nopython=True)
@@ -68,7 +69,7 @@ def choose1(n,k):
     return product
 
 @jit(nopython=True)
-def calc_distortion(X,d,w):
+def calc_distortion(X,d):
     distortion = 0
     for i in range(len(X)):
         for j in range(i):
@@ -87,6 +88,7 @@ def stoch_solver(X,d,w,indices,schedule,num_iter=15,epsilon=1e-3):
 
         step = schedule[count] if count <= len(schedule) else schedule[-1] #Get next step size
         shuffle(indices) #Shuffle pair order
+        #print(calc_stress(X,d,w))
         if step > 0.1:
             step = 0.1
 
@@ -115,8 +117,8 @@ def stoch_solver_debug(X,d,w,indices,schedule,num_iter=15,epsilon=1e-3):
 @jit(nopython=True)
 def set_step(w_max,eta_max,eta_min):
     a = 1/w_max
-    b = -np.log(eta_min/eta_max)/(15-1)
-    step = lambda count: eta_max*np.exp(-b*count)
+    b = np.log(eta_min/eta_max)/(15-1)
+    step = lambda count: eta_max*np.exp(b*count)
 
     # lamb = np.log(eta_min/eta_max)/(15-1)
     # step = lambda count: np.exp(lamb*count)
@@ -124,11 +126,12 @@ def set_step(w_max,eta_max,eta_min):
     return np.array([step(count) for count in range(15)])
 
 def preprocess(graph,input_format='dot'):
-    if True:
-        graph_file = io.StringIO(pygraphviz.AGraph(graph).to_string())
-        G = gt.load_graph(graph_file,fmt='dot')
-        print("yo")
-        return G,get_distance_matrix(G)
+    graph_file = io.StringIO(pygraphviz.AGraph(graph).to_string())
+    print(graph_file)
+    G = gt.load_graph(graph_file,fmt='dot')
+    G = gt.lattice([5,5])
+    d = distance_matrix(G)
+    return G,d
 
 def postprocess(G,embedding):
     pos = G.new_vp('vector<float>')
@@ -148,10 +151,20 @@ def gt_to_json(G,embedding):
     out = {"nodes": [None for i in range(G.num_vertices())],
             "edges": [None for i in range(G.num_edges())]
             }
+
+    sinh, cosh = np.sinh, np.cosh
     for v in nodes:
+        x,y = embedding[int(v)]
+        Rh = np.arccosh(cosh(x)*cosh(y))
+        Re = (np.exp(Rh)-1)/(np.exp(Rh)+1)
+        theta = 2*np.arctan( sinh(y) / ( sinh(x)*cosh(y) + np.sqrt( pow(cosh(x),2) * pow(cosh(y),2) - 1 ) ) )
+        pos = [Re * np.cos(theta), Re * np.sin(theta)]
+        if pow(pos[0],2) + pow(pos[1],2) >= 1:
+            print("yell")
+
         out["nodes"][int(v)] = {
             "id": int(v),
-            "pos": list(embedding[int(v)])
+            "pos": pos
         }
     count = 0
     for u,v in edges:
@@ -164,17 +177,36 @@ def gt_to_json(G,embedding):
 
     return out
 
+
+def optimize_scale(X,d,w,num_iter,until_conv,indices,schedule):
+    from scipy.optimize import minimize_scalar
+    init_X = X.copy()
+    def stress_at(a):
+        new_X = stoch_solver(X.copy(),d*a,w,indices,schedule,num_iter=num_iter)
+        return calc_distortion(new_X,d*a)
+
+    opt_alpha = minimize_scalar(stress_at,bounds=(0.1,10),method='bounded')
+    print(opt_alpha.x)
+    return stoch_solver(X.copy(),d*opt_alpha.x,w,indices,schedule,num_iter=num_iter)
+
+
+
 class HMDS:
-    def __init__(self,dissimilarities,opt_scale=False,scaling_factor=0,init_pos=np.empty(1)):
+    def __init__(self,dissimilarities,
+                 opt_scale=False,
+                 scaling_factor=0,
+                 init_pos=None
+                 ):
         self.d = dissimilarities
+        self.opt_scale = opt_scale
         self.d_max = np.max(dissimilarities)
-        #self.d = self.d*(2*math.pi/self.d_max)
+        # self.d = self.d*(2*math.pi/self.d_max)
         self.d_min = 1
         self.n = len(self.d)
-        # if self.n > 30:
-        #     self.d = self.d*(10/self.d_max)
-        if init_pos.any(): #If an initial configuration is desired, assign it
-            self.X = np.asarray(init_pos)
+        if self.n > 30:
+            self.d = self.d*(10/self.d_max)
+        if init_pos: #If an initial configuration is desired, assign it
+            self.X = init_pos
             if self.X.shape[0] != self.n:
                 raise Exception("Number of elements in starting configuration must be equal to the number of elements in the dissimilarity matrix.")
         else: #Random point in the chosen geometry
@@ -203,6 +235,8 @@ class HMDS:
         X = self.X
         d = self.d
         w = self.w
+        if self.opt_scale:
+            return optimize_scale(X,d,w,num_iter,until_conv,self.indices,self.steps)
         if debug:
             solve_step = stoch_solver_debug(X,d,w,self.indices,self.steps,num_iter=num_iter)
             #print(next(solve_step))
@@ -243,7 +277,7 @@ class HMDS:
                 bottom += self.d[i][j] ** 2
         return stress/bottom
 
-    def calc_distortion(self):
+    def calc_distortion1(self):
         """
         A normalized goodness of fit measure.
         """
@@ -297,52 +331,67 @@ def scale_matrix(d,new_max):
 
 
 
+#Code taken from **link t-SNET Github
+def get_shortest_path_distance_matrix(g, k=10, weights=None):
+    # Used to find which vertices are not connected. This has to be this weird,
+    # since graph_tool uses maxint for the shortest path distance between
+    # unconnected vertices.
+    def get_unconnected_distance():
+        g_mock = gt.Graph()
+        g_mock.add_vertex(2)
+        shortest_distances_mock = gt.shortest_distance(g_mock)
+        unconnected_dist = shortest_distances_mock[0][1]
+        return unconnected_dist
 
-def output_hyperbolic(X,G):
-    import networkx as nx
-    count = 0
-    for i in G.nodes():
-        x,y = X[count]
-        Rh = x
-        theta = y
-        Rh = np.arccosh(np.cosh(x)*np.cosh(y))
-        theta = 2*math.atan2(np.sinh(x)*np.cosh(y)+pow(pow(np.cosh(x),2)*pow(np.cosh(y),2)-1,0.5),np.sinh(y))
-        Re = (math.exp(Rh)-1)/(math.exp(Rh)+1)
-        #hR = math.acosh((r*r/2)+1)
-        Rl = pow(2*(math.cosh(Rh)-1),0.5)
+    # Get the value (usually maxint) that graph_tool uses for distances between
+    # unconnected vertices.
+    unconnected_dist = get_unconnected_distance()
 
-        G.nodes[i]['mypos'] = str(Rh) + "," + str(theta)
-        #G.nodes[i]['pos'] = str(500*Rl*math.cos(theta)) + "," + str(500*Rl*math.sin(theta))
+    # Get shortest distances for all pairs of vertices in a NumPy array.
+    X = gt.shortest_distance(g, weights=weights).get_2d_array(range(g.num_vertices()))
 
-        count += 1
-    nx.drawing.nx_agraph.write_dot(G, "output_hyperbolic.dot")
-    nx.drawing.nx_agraph.write_dot(G, "/home/jacob/Desktop/hyperbolic-space-graphs/old/jsCanvas/graphs/hyperbolic_colors.dot")
-    nx.drawing.nx_agraph.write_dot(G, "/home/jacob/Desktop/hyperbolic-space-graphs/maps/static/graphs/hyperbolic_colors.dot")
+    if len(X[X == unconnected_dist]) > 0:
+        print('[distance_matrix] There were disconnected components!')
 
-#Program start
-def main():
-    #G = nx.drawing.nx_agraph.read_dot('input.dot')
-    #G = nx.triangular_lattice_graph(5,5)
-    #G = nx.random_tree(50)
+    # Get maximum shortest-path distance (ignoring maxint)
+    X_max = X[X != unconnected_dist].max()
 
-    d = np.asarray(all_pairs_shortest_path(G))
+    # Set the unconnected distances to k times the maximum of the other
+    # distances.
+    X[X == unconnected_dist] = k * X_max
 
-    Y = myMDS(d)
-    Y.solve(15)
-    print(Y.calc_distortion())
-    output_euclidean(Y.X)
+    return X
 
 
-    best_X = []
-    best_score = 10000000
+# Return the distance matrix of g, with the specified metric.
+def distance_matrix(g, distance_metric='shortest_path', normalize=False, k=10.0, verbose=True, weights=None):
 
-    for i in range(10):
-        Y = myHMDS(d,init_pos=Y.X)
-        Y.solve(50)
-        if Y.calc_stress() < best_score:
-            best_score = Y.calc_distortion()
-            best_X = Y.X
-            print('got better')
-        print(i)
-    output_hyperbolic(best_X,G,0)
-    print(best_score)
+    if verbose:
+        print('[distance_matrix] Computing distance matrix (metric: {0})'.format(distance_metric))
+
+    if distance_metric == 'shortest_path' or distance_metric == 'spdm':
+        X = get_shortest_path_distance_matrix(g, weights=weights)
+    elif distance_metric == 'modified_adjacency' or distance_metric == 'mam':
+        X = get_modified_adjacency_matrix(g, k)
+    else:
+        raise Exception('Unknown distance metric.')
+
+    # Just to make sure, symmetrize the matrix.
+    X = (X + X.T) / 2
+
+    # Force diagonal to zero
+    X[range(X.shape[0]), range(X.shape[1])] = 0
+
+    # Normalize matrix s.t. max is 1.
+    if normalize:
+        X /= np.max(X)
+    if verbose:
+        print('[distance_matrix] Done!')
+
+    return X
+
+G = gt.load_graph('SGD/graphs/musicland.dot')
+#G = gt.lattice([5,5])
+d = distance_matrix(G)
+Y = HMDS(d,opt_scale=True)
+Y.solve(100)

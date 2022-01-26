@@ -18,8 +18,8 @@ Edit `DATABASES`, `SECRET_KEY`, `ALLOWED_HOSTS` and `ADMINS` in `gmap_web/settin
 
 4. Create Django databases:
 
-        python manage.py makemigrations
-        python manage.py migrate
+        python3 manage.py makemigrations
+        python3 manage.py migrate
 
 5. Run the server:
 

@@ -34,7 +34,7 @@ if __name__ == '__main__':
     start = time.time()
 
     #Compute shortest path distance matrix to use as input
-    d = distance_matrix(G,normalize=True)
+    d = distance_matrix(G,normalize=False)
 
     #Call to HMDS class and solve
     Y = HMDS(d,opt_scale=args.optimize_scale,
