@@ -1,10 +1,44 @@
 Hyperbolic realization of graphs
 ================
-Repository accompanying IEEE PacificVis submission. Webserver to be hosted.
+Repository accompanying IEEE PacificVis submission.
 
 HMDS can be run independent of the webserver to produce static images. Take a look at the SGD folder for more details.
 
-Basic Setup
+
+```
+usage: hyperbolic_MDS.py
+                [--iterations ITERATIONS] [--scaling_factor SCALING_FACTOR]
+                [--optimize_scale OPTIMIZE_SCALE]
+                [--convergence CONVERGENCE]
+                [--output OUTPUT]
+                input_graph
+
+Read a graph, and save it's (poincare) coordinates to output.
+
+positional arguments:
+  input_graph
+
+optional arguments:
+  --iterations ITERATIONS
+                        Total number of iterations to do.
+
+--scaling_factor SCALING_FACTOR
+                          Scalar multiple of distance matrix
+
+--optimize_scale OPTIMIZE_SCALE
+                        Whether or not to optimize scaling factor
+
+--convergence CONVERGENCE
+                        Use a convergent schedule (rather than a fixed number of iterations)
+
+--output OUTPUT
+                      Where to output the coordinates, svg drawing
+
+Example:
+python3 hyperbolic_MDS.py SGD/graphs/dwt_72.dot
+```
+
+Webserver Basic Setup [Optional]
 --------
 
 1. Install the python dependencies listed using pip:

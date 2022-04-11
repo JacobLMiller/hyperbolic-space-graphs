@@ -20,7 +20,7 @@ def geodesic(u,v):
         dist = np.linalg.norm(u-v)
     return dist
 
-@jit(nopython=True)
+@jit(nopython=True,cache=True)
 def satisfy(u,v,d,w,step):
     """
     u,v: hyperbolic vectors
@@ -76,7 +76,7 @@ def calc_distortion(X,d):
             distortion += abs((geodesic(X[i],X[j])-d[i][j]))/d[i][j]
     return (1/choose1(len(X),2))*distortion
 
-@jit(nopython=True)
+@jit(nopython=True,cache=True)
 def stoch_solver(X,d,w,indices,schedule,num_iter=15,epsilon=1e-3):
     step = 0.1
     shuffle = random.shuffle
@@ -124,6 +124,37 @@ def set_step(w_max,eta_max,eta_min):
     # step = lambda count: np.exp(lamb*count)
 
     return np.array([step(count) for count in range(15)])
+
+def schedule_convergent(d,t_max,eps,t_maxmax):
+    w = np.divide(np.ones(d.shape),d**2,out=np.zeros_like(d), where=d!=0)
+    w_min,w_max = np.amin(w,initial=10000,where=w > 0), np.max(w)
+    print(w_min)
+
+    eta_max = 1.0 / w_min
+    eta_min = eps / w_max
+
+    lamb = np.log(eta_max/eta_min) / (t_max-1)
+
+    # initialize step sizes
+    etas = np.zeros(t_maxmax)
+    eta_switch = 1.0 / w_max
+    print(eta_switch)
+    for t in range(t_maxmax):
+        eta = eta_max * np.exp(-lamb * t)
+        if (eta < eta_switch): break
+
+        etas[t] = eta
+
+    tau = t
+    print(lamb)
+    for t in range(t,t_maxmax):
+        eta = eta_switch / (1 + lamb*(t-tau))
+        etas[t] = eta
+        #etas[t] = 1e-7
+
+    #etas = [eps for t in range(t_maxmax)]
+    #print(etas)
+    return np.array(etas)
 
 def preprocess(graph,input_format='dot'):
     graph_file = io.StringIO(pygraphviz.AGraph(graph).to_string())
@@ -195,7 +226,8 @@ class HMDS:
     def __init__(self,dissimilarities,
                  opt_scale=False,
                  scaling_factor=0,
-                 init_pos=None
+                 init_pos=None,
+                 convergence=False
                  ):
         self.d = dissimilarities
         self.opt_scale = opt_scale
@@ -228,7 +260,7 @@ class HMDS:
 
         self.indices = np.array(list(itertools.combinations(range(self.n), 2)))
 
-        self.steps = set_step(self.w_max,self.eta_max,self.eta_min)
+        self.steps = set_step(self.w_max,self.eta_max,self.eta_min) if not convergence else schedule_convergent(self.d, 30, 0.01, 200)
 
 
     def solve(self,num_iter=20,debug=False,until_conv=False):
@@ -249,35 +281,9 @@ class HMDS:
         self.X = X
         return X
 
-    def calc_stress3(self):
-        """
-        Calculates the standard measure of stress: \sum_{i,j} w_{i,j}(dist(Xi,Xj)-D_{i,j})^2
-        Or, in English, the square of the difference of the realized distance and the theoretical distance,
-        weighted by the table w, and summed over all pairs.
-        """
-        stress = 0
-        for i in range(self.n):
-            for j in range(i):
-                stress += self.w[i][j]*pow(geodesic(self.X[i],self.X[j])-self.d[i][j],2)
-        return pow(stress,0.5)
 
-    def calc_stress2(self):
-        """
-        Calculates the standard measure of stress: \sum_{i,j} w_{i,j}(dist(Xi,Xj)-D_{i,j})^2
-        Or, in English, the square of the difference of the realized distance and the theoretical distance,
-        weighted by the table w, and summed over all pairs.
-        """
-        stress = 0
-        for i in range(self.n):
-            for j in range(i):
-                stress += self.w[i][j]*pow(geodesic(self.X[i],self.X[j])-self.d[i][j],2)
-        bottom = 0
-        for i in range(self.n):
-            for j in range(i):
-                bottom += self.d[i][j] ** 2
-        return stress/bottom
 
-    def calc_distortion1(self):
+    def calc_distortion(self):
         """
         A normalized goodness of fit measure.
         """
@@ -390,8 +396,8 @@ def distance_matrix(g, distance_metric='shortest_path', normalize=False, k=10.0,
 
     return X
 
-G = gt.load_graph('SGD/graphs/musicland.dot')
-#G = gt.lattice([5,5])
-d = distance_matrix(G)
-Y = HMDS(d,opt_scale=True)
-Y.solve(100)
+# G = gt.load_graph('SGD/graphs/musicland.dot')
+# #G = gt.lattice([5,5])
+# d = distance_matrix(G)
+# Y = HMDS(d,opt_scale=True)
+# Y.solve(100)
